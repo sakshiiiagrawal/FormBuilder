@@ -113,10 +113,10 @@ async def upload_file(
                         
                     field_type = str(row['Field Type']).strip().lower()
                     
-                    if field_type not in ['text', 'dropdown', 'multiselect']:
+                    if field_type not in ['text', 'dropdown', 'multiselect', 'image']:
                         raise HTTPException(
                             status_code=400, 
-                            detail=f"Invalid field type: '{field_type}' in row {index + 2}. Allowed types are: text, dropdown, multiselect"
+                            detail=f"Invalid field type: '{field_type}' in row {index + 2}. Allowed types are: text, dropdown, multiselect, image"
                         )
                     
                     if field_type in ['dropdown', 'multiselect']:

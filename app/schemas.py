@@ -1,10 +1,10 @@
 from pydantic import BaseModel
-from typing import Dict, Optional, List, Any
+from typing import Dict, Optional, List, Any, Union
 from datetime import datetime
 
 class FormBase(BaseModel):
     title: str
-    fields: Dict[str, Optional[List[str]]]
+    fields: Dict[str, Optional[Union[List[str], str]]]
     password: Optional[str] = None
 
 class FormCreate(FormBase):

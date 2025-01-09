@@ -18,7 +18,8 @@ import SuccessDialog from './SuccessDialog';
 const FIELD_TYPES = [
   { value: 'text', label: 'Text Input' },
   { value: 'dropdown', label: 'Dropdown' },
-  { value: 'multiselect', label: 'Multi Select' }
+  { value: 'multiselect', label: 'Multi Select' },
+  { value: 'image', label: 'Image Input' }
 ];
 
 // Helper function to get default expiry date (24 hours from now)
@@ -38,7 +39,7 @@ function FormCreate() {
   const [formLink, setFormLink] = useState('');
 
   const handleAddField = () => {
-    setFields([...fields, { name: '', type: 'text', options: [] }]);
+    setFields([...fields, { name: '', type: 'text', options: [], isImage: false }]);
   };
 
   const handleRemoveField = (index) => {
@@ -47,7 +48,11 @@ function FormCreate() {
 
   const handleFieldChange = (index, field) => {
     const newFields = [...fields];
-    newFields[index] = { ...newFields[index], ...field };
+    newFields[index] = { 
+      ...newFields[index], 
+      ...field,
+      options: field.type === 'image' ? [] : newFields[index].options 
+    };
     setFields(newFields);
   };
 
@@ -57,7 +62,13 @@ function FormCreate() {
       const formData = {
         title,
         fields: fields.reduce((acc, field) => {
-          acc[field.name] = field.type === 'text' ? null : field.options;
+          if (field.type === 'text') {
+            acc[field.name] = null;
+          } else if (field.type === 'image') {
+            acc[field.name] = 'image';
+          } else {
+            acc[field.name] = field.options;
+          }
           return acc;
         }, {}),
         password: password,
@@ -124,17 +135,23 @@ function FormCreate() {
                     </TextField>
                   </Grid>
                   <Grid item xs={10} sm={3}>
-                    {(field.type === 'dropdown' || field.type === 'multiselect') && (
+                    {(field.type === 'dropdown' || field.type === 'multiselect') ? (
                       <TextField
                         label="Options (comma-separated)"
-                        value={field.options.join(',')}
+                        value={Array.isArray(field.options) ? field.options.join(',') : ''}
                         onChange={(e) => handleFieldChange(index, { 
-                          options: e.target.value.split(',').map(opt => opt.trim())
+                          options: e.target.value.split(',').map(opt => opt.trim()).filter(opt => opt)
                         })}
                         required
                         fullWidth
+                        placeholder="Enter options separated by commas"
+                        helperText="Example: Option1, Option2, Option3"
                       />
-                    )}
+                    ) : field.type === 'image' ? (
+                      <Typography variant="body2" color="textSecondary">
+                        Image upload will be enabled in the form
+                      </Typography>
+                    ) : null}
                   </Grid>
                   <Grid item xs={2} sm={1}>
                     <IconButton 
