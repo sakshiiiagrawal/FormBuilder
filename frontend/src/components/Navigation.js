@@ -1,27 +1,13 @@
 import React from 'react';
-import { AppBar, Toolbar, Button, Box } from '@mui/material';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Home as HomeIcon } from '@mui/icons-material';
+import { AppBar, Toolbar, Typography } from '@mui/material';
 
 function Navigation() {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // Only show navigation on non-home pages
-  if (location.pathname === '/') {
-    return null;
-  }
-
   return (
-    <AppBar position="static" color="default" elevation={1}>
+    <AppBar position="static" sx={{ mb: 4 }}>
       <Toolbar>
-        <Button
-          startIcon={<HomeIcon />}
-          onClick={() => navigate('/')}
-          color="inherit"
-        >
-          Home
-        </Button>
+        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          Form Builder
+        </Typography>
       </Toolbar>
     </AppBar>
   );

@@ -1,0 +1,8 @@
+Field Name,Field Type,Options
+Full Name,text,
+Age,text,
+Gender,dropdown,"Male,Female,Other"
+Favorite Colors,multiselect,"Red,Blue,Green,Yellow,Purple"
+Education Level,dropdown,"High School,Bachelor's,Master's,PhD"
+Hobbies,multiselect,"Reading,Gaming,Sports,Music,Art,Travel"
+Comments,text, 

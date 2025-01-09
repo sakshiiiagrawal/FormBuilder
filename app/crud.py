@@ -1,48 +1,44 @@
 from sqlalchemy.orm import Session
-import models, schemas
-import uuid
-import pandas as pd
-from fastapi import HTTPException
 from datetime import datetime
-from passlib.context import CryptContext
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import uuid
+from typing import Union
+import models, schemas
+from fastapi import HTTPException
 
 def create_form(db: Session, form: schemas.FormCreate):
     db_form = models.Form(
-        uuid=uuid.uuid4(),
         title=form.title,
         fields=form.fields,
-        password=pwd_context.hash(form.password) if form.password else None,
-        expiry=form.expiry
+        password=form.password
     )
     db.add(db_form)
     db.commit()
     db.refresh(db_form)
-    return schemas.FormResponse(uuid=db_form.uuid)
+    return {"uuid": str(db_form.uuid)}
 
-def create_form_from_csv(db: Session, csv_content: bytes):
-    try:
-        df = pd.read_csv(csv_content)
-        fields = {col: df[col].dropna().tolist() for col in df.columns}
-        form = schemas.FormCreate(
-            title="Form from CSV",
-            fields=fields
-        )
-        return create_form(db, form)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid CSV format: {str(e)}")
+def get_form(db: Session, form_uuid: Union[str, uuid.UUID]):
+    if isinstance(form_uuid, str):
+        try:
+            form_uuid = uuid.UUID(form_uuid)
+        except ValueError:
+            return None
+    
+    db_form = db.query(models.Form).filter(models.Form.uuid == form_uuid).first()
+    if db_form:
+        # Convert UUID to string before returning
+        db_form.uuid = str(db_form.uuid)
+    return db_form
 
-def get_form(db: Session, form_uuid: uuid.UUID):
-    return db.query(models.Form).filter(models.Form.uuid == form_uuid).first()
+def create_response(db: Session, form_uuid: Union[str, uuid.UUID], response: schemas.ResponseCreate):
+    if isinstance(form_uuid, str):
+        try:
+            form_uuid = uuid.UUID(form_uuid)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
 
-def create_response(db: Session, form_uuid: uuid.UUID, response: schemas.ResponseCreate):
     form = get_form(db, form_uuid)
     if not form:
         raise HTTPException(status_code=404, detail="Form not found")
-    
-    if form.expiry and datetime.utcnow() > form.expiry:
-        raise HTTPException(status_code=400, detail="Form has expired")
 
     db_response = models.Response(
         form_uuid=form_uuid,
@@ -51,15 +47,40 @@ def create_response(db: Session, form_uuid: uuid.UUID, response: schemas.Respons
     db.add(db_response)
     db.commit()
     db.refresh(db_response)
+    
+    # Convert UUIDs to strings
+    db_response.id = str(db_response.id)
+    db_response.form_uuid = str(db_response.form_uuid)
     return db_response
 
-def get_responses(db: Session, form_uuid: uuid.UUID, password: str):
+def get_responses(db: Session, form_uuid: Union[str, uuid.UUID], password: str):
+    if isinstance(form_uuid, str):
+        try:
+            form_uuid = uuid.UUID(form_uuid)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
+    
     form = get_form(db, form_uuid)
     if not form:
         raise HTTPException(status_code=404, detail="Form not found")
     
+    # Check if form requires password
     if form.password:
-        if not password or not pwd_context.verify(password, form.password):
+        if not password:
+            raise HTTPException(status_code=401, detail="Password required to view responses")
+        if password != form.password:
             raise HTTPException(status_code=401, detail="Invalid password")
-
-    return db.query(models.Response).filter(models.Response.form_uuid == form_uuid).all() 
+    
+    responses = db.query(models.Response).filter(
+        models.Response.form_uuid == form_uuid
+    ).all()
+    
+    # Convert UUIDs to strings in responses
+    for response in responses:
+        response.id = str(response.id)
+        response.form_uuid = str(response.form_uuid)
+    
+    return {
+        "fields": list(form.fields.keys()),
+        "responses": [response.response_data for response in responses]
+    } 

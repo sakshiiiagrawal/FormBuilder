@@ -1,0 +1,5 @@
+Field Name,Field Type,Options
+Name,text,
+Email,text,
+Age,dropdown,"Under 18,18-25,26-35,36-50,Over 50"
+Interests,multiselect,"Reading,Sports,Music,Travel,Gaming,Cooking" 

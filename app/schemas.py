@@ -1,37 +1,39 @@
-from pydantic import BaseModel, UUID4
-from typing import Optional, Dict, Any, List
+from pydantic import BaseModel
+from typing import Dict, Optional, List, Any
 from datetime import datetime
 
 class FormBase(BaseModel):
     title: str
-    fields: Dict[str, Any]
+    fields: Dict[str, Optional[List[str]]]
     password: Optional[str] = None
-    expiry: Optional[datetime] = None
 
 class FormCreate(FormBase):
     pass
 
+class FormResponse(BaseModel):
+    uuid: str
+
 class Form(FormBase):
-    uuid: UUID4
+    uuid: str
     created_at: datetime
-    updated_at: datetime
 
     class Config:
         from_attributes = True
 
-class FormResponse(BaseModel):
-    uuid: UUID4
-
-class ResponseBase(BaseModel):
+class ResponseCreate(BaseModel):
     response_data: Dict[str, Any]
 
-class ResponseCreate(ResponseBase):
-    pass
-
-class Response(ResponseBase):
-    id: UUID4
-    form_uuid: UUID4
+class Response(ResponseCreate):
+    id: str
+    form_uuid: str
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ViewResponsesResponse(BaseModel):
+    fields: List[str]
+    responses: List[Dict[str, Any]]
 
     class Config:
         from_attributes = True 

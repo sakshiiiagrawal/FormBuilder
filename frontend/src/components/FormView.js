@@ -10,7 +10,6 @@ import {
   MenuItem,
   Select,
   FormControl,
-  Chip,
   Alert,
   Divider,
   Grid,
@@ -20,6 +19,7 @@ import {
 } from '@mui/material';
 import { Send as SendIcon } from '@mui/icons-material';
 import axios from 'axios';
+import SuccessDialog from './SuccessDialog';
 
 function FormView() {
   const { uuid } = useParams();
@@ -28,6 +28,7 @@ function FormView() {
   const [responses, setResponses] = useState({});
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchForm = async () => {
@@ -60,7 +61,7 @@ function FormView() {
       await axios.post(`http://localhost:8000/submit-form/${uuid}`, {
         response_data: responses
       });
-      navigate(`/responses/${uuid}`);
+      setSuccessDialogOpen(true);
     } catch (error) {
       setError(error.response?.data?.detail || 'Error submitting form');
     }
@@ -71,6 +72,11 @@ function FormView() {
       ...prev,
       [fieldName]: value
     }));
+  };
+
+  const handleCloseDialog = () => {
+    setSuccessDialogOpen(false);
+    navigate('/');
   };
 
   if (loading) {
@@ -99,116 +105,126 @@ function FormView() {
   }
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 800, mx: 'auto' }}>
-      <Paper 
-        elevation={3}
-        sx={{ 
-          p: 4,
-          background: 'linear-gradient(to bottom, #ffffff, #f8f9fa)'
-        }}
-      >
-        <Typography 
-          variant="h4" 
-          gutterBottom 
-          align="center"
+    <>
+      <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 800, mx: 'auto' }}>
+        <Paper 
+          elevation={3}
           sx={{ 
-            color: 'primary.main',
-            fontWeight: 'bold',
-            mb: 3
+            p: 4,
+            background: 'linear-gradient(to bottom, #ffffff, #f8f9fa)'
           }}
         >
-          {form.title}
-        </Typography>
-        <Divider sx={{ my: 3 }} />
+          <Typography 
+            variant="h4" 
+            gutterBottom 
+            align="center"
+            sx={{ 
+              color: 'primary.main',
+              fontWeight: 'bold',
+              mb: 3
+            }}
+          >
+            {form.title}
+          </Typography>
+          <Divider sx={{ my: 3 }} />
 
-        <Stack spacing={4}>
-          {Object.entries(form.fields).map(([fieldName, options]) => (
-            <Card 
-              key={fieldName} 
-              elevation={1}
+          <Stack spacing={4}>
+            {Object.entries(form.fields).map(([fieldName, options]) => (
+              <Card 
+                key={fieldName} 
+                elevation={1}
+                sx={{ 
+                  '&:hover': { 
+                    boxShadow: 3,
+                    transform: 'translateY(-2px)',
+                    transition: 'all 0.2s ease-in-out'
+                  }
+                }}
+              >
+                <CardContent>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <Typography 
+                        variant="subtitle1" 
+                        sx={{ 
+                          fontWeight: 'bold',
+                          color: 'primary.main',
+                          mb: 2
+                        }}
+                      >
+                        {fieldName}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <FormControl fullWidth variant="outlined">
+                        {options ? (
+                          <Select
+                            value={responses[fieldName]}
+                            onChange={(e) => handleChange(fieldName, e.target.value)}
+                            sx={{ 
+                              bgcolor: 'background.paper',
+                              '&:hover': { bgcolor: 'background.paper' }
+                            }}
+                          >
+                            {options.map((option) => (
+                              <MenuItem key={option} value={option}>
+                                {option}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        ) : (
+                          <TextField
+                            value={responses[fieldName]}
+                            onChange={(e) => handleChange(fieldName, e.target.value)}
+                            fullWidth
+                            variant="outlined"
+                            placeholder="Your answer"
+                            sx={{ 
+                              bgcolor: 'background.paper',
+                              '&:hover': { bgcolor: 'background.paper' }
+                            }}
+                          />
+                        )}
+                      </FormControl>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            ))}
+
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              fullWidth
+              endIcon={<SendIcon />}
               sx={{ 
-                '&:hover': { 
-                  boxShadow: 3,
+                mt: 4,
+                py: 1.5,
+                fontSize: '1.1rem',
+                fontWeight: 'bold',
+                boxShadow: 2,
+                '&:hover': {
+                  boxShadow: 4,
                   transform: 'translateY(-2px)',
                   transition: 'all 0.2s ease-in-out'
                 }
               }}
             >
-              <CardContent>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <Typography 
-                      variant="subtitle1" 
-                      sx={{ 
-                        fontWeight: 'bold',
-                        color: 'primary.main',
-                        mb: 2
-                      }}
-                    >
-                      {fieldName}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <FormControl fullWidth variant="outlined">
-                      {options ? (
-                        <Select
-                          value={responses[fieldName]}
-                          onChange={(e) => handleChange(fieldName, e.target.value)}
-                          sx={{ 
-                            bgcolor: 'background.paper',
-                            '&:hover': { bgcolor: 'background.paper' }
-                          }}
-                        >
-                          {options.map((option) => (
-                            <MenuItem key={option} value={option}>
-                              {option}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      ) : (
-                        <TextField
-                          value={responses[fieldName]}
-                          onChange={(e) => handleChange(fieldName, e.target.value)}
-                          fullWidth
-                          variant="outlined"
-                          placeholder="Your answer"
-                          sx={{ 
-                            bgcolor: 'background.paper',
-                            '&:hover': { bgcolor: 'background.paper' }
-                          }}
-                        />
-                      )}
-                    </FormControl>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          ))}
+              Submit Response
+            </Button>
+          </Stack>
+        </Paper>
+      </Box>
 
-          <Button
-            type="submit"
-            variant="contained"
-            size="large"
-            fullWidth
-            endIcon={<SendIcon />}
-            sx={{ 
-              mt: 4,
-              py: 1.5,
-              fontSize: '1.1rem',
-              fontWeight: 'bold',
-              boxShadow: 2,
-              '&:hover': {
-                boxShadow: 4,
-                transform: 'translateY(-2px)',
-                transition: 'all 0.2s ease-in-out'
-              }
-            }}
-          >
-            Submit Response
-          </Button>
-        </Stack>
-      </Paper>
-    </Box>
+      <SuccessDialog
+        open={successDialogOpen}
+        onClose={handleCloseDialog}
+        title="Response Submitted Successfully!"
+        message="Thank you for submitting your response. You can share this form with others using the link below."
+        link={window.location.href}
+      />
+    </>
   );
 }
 

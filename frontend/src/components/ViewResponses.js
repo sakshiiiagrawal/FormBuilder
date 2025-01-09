@@ -1,92 +1,104 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Box,
   Paper,
   Typography,
-  Alert,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Button,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Chip,
-  Stack,
-  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Alert,
+  LinearProgress,
 } from '@mui/material';
 import axios from 'axios';
 
 function ViewResponses() {
   const { uuid } = useParams();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [form, setForm] = useState(null);
   const [responses, setResponses] = useState([]);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState('');
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(true);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [fields, setFields] = useState([]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const urlPassword = params.get('password');
-    
-    if (urlPassword) {
-      fetchResponses(urlPassword);
-    } else {
-      setShowPasswordDialog(true);
-      setLoading(false);
-    }
-  }, [location.search]);
-
-  const fetchResponses = async (pwd) => {
-    setLoading(true);
+  const fetchResponses = useCallback(async (pwd) => {
     try {
-      const formResponse = await axios.get(`http://localhost:8000/form/${uuid}`);
-      setForm(formResponse.data);
-      
-      const responsesResponse = await axios.get(
-        `http://localhost:8000/view-responses/${uuid}`,
-        { params: { password: pwd } }
-      );
-      setResponses(responsesResponse.data);
-      setShowPasswordDialog(false);
-      // Update URL with password if it's not already there
-      if (!location.search) {
-        navigate(`/responses/${uuid}?password=${pwd}`, { replace: true });
-      }
+      setLoading(true);
+      const response = await axios.get(`http://localhost:8000/view-responses/${uuid}?password=${pwd}`);
+      setResponses(response.data.responses);
+      setFields(response.data.fields);
+      setError(null);
+      setDialogOpen(false);
     } catch (error) {
-      if (error.response?.status === 401) {
-        setError('Invalid password');
-        setShowPasswordDialog(true);
-      } else {
-        setError(error.response?.data?.detail || 'Error loading responses');
-      }
+      setError(error.response?.data?.detail || 'Error loading responses');
     } finally {
       setLoading(false);
     }
-  };
+  }, [uuid]);
 
-  const handlePasswordSubmit = () => {
+  useEffect(() => {
+    if (!dialogOpen && password) {
+      fetchResponses(password);
+    }
+  }, [dialogOpen, password, fetchResponses]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
     fetchResponses(password);
   };
 
+  if (dialogOpen) {
+    return (
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+        <form onSubmit={handleSubmit}>
+          <DialogTitle>Enter Password</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Password"
+              type="password"
+              fullWidth
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            {error && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error}
+              </Alert>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button type="submit" variant="contained">
+              View Responses
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+    );
+  }
+
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <CircularProgress />
+      <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4 }}>
+        <LinearProgress />
+        <Typography sx={{ mt: 2 }} align="center">Loading responses...</Typography>
       </Box>
     );
   }
 
-  if (error && !showPasswordDialog) {
+  if (error) {
     return (
       <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4 }}>
         <Alert severity="error">{error}</Alert>
@@ -94,120 +106,41 @@ function ViewResponses() {
     );
   }
 
-  if (showPasswordDialog) {
-    return (
-      <Dialog 
-        open={showPasswordDialog} 
-        onClose={() => navigate('/')}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle sx={{ textAlign: 'center' }}>Enter Password</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Password"
-            type="password"
-            fullWidth
-            variant="outlined"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            error={!!error}
-            helperText={error}
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button 
-            onClick={handlePasswordSubmit} 
-            variant="contained"
-            fullWidth
-            sx={{ py: 1.5 }}
-          >
-            View Responses
-          </Button>
-        </DialogActions>
-      </Dialog>
-    );
-  }
-
-  if (!form || !responses.length) {
-    return (
-      <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4 }}>
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h5" gutterBottom align="center">
-            No responses yet
-          </Typography>
-        </Paper>
-      </Box>
-    );
-  }
-
-  const fields = Object.keys(form.fields);
-
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 4 }}>
-      <Paper sx={{ p: 4 }}>
-        <Typography 
-          variant="h4" 
-          gutterBottom 
-          align="center"
-          sx={{ 
-            color: 'primary.main',
-            fontWeight: 'bold',
-            mb: 3
-          }}
-        >
-          {form.title} - Responses
+    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+      <Paper sx={{ p: 3 }}>
+        <Typography variant="h4" gutterBottom align="center">
+          Form Responses
         </Typography>
-        
-        <TableContainer component={Paper} elevation={2} sx={{ mt: 3 }}>
-          <Table sx={{ minWidth: 650 }}>
-            <TableHead>
-              <TableRow sx={{ bgcolor: 'primary.main' }}>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Response #</TableCell>
-                {fields.map((field) => (
-                  <TableCell key={field} sx={{ color: 'white', fontWeight: 'bold' }}>
-                    {field}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {responses.map((response, index) => (
-                <TableRow 
-                  key={response.id}
-                  sx={{ 
-                    '&:nth-of-type(odd)': { bgcolor: 'action.hover' },
-                    '&:hover': { bgcolor: 'action.selected' }
-                  }}
-                >
-                  <TableCell component="th" scope="row">
-                    {index + 1}
-                  </TableCell>
+
+        {responses.length === 0 ? (
+          <Alert severity="info">No responses yet</Alert>
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
                   {fields.map((field) => (
-                    <TableCell key={field}>
-                      {Array.isArray(response.response_data[field]) ? (
-                        <Stack direction="row" spacing={1}>
-                          {response.response_data[field].map((value) => (
-                            <Chip 
-                              key={value} 
-                              label={value} 
-                              size="small"
-                              sx={{ bgcolor: 'primary.light', color: 'white' }}
-                            />
-                          ))}
-                        </Stack>
-                      ) : (
-                        response.response_data[field]
-                      )}
-                    </TableCell>
+                    <TableCell key={field}>{field}</TableCell>
                   ))}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {responses.map((response, index) => (
+                  <TableRow key={index}>
+                    {fields.map((field) => (
+                      <TableCell key={field}>
+                        {Array.isArray(response[field])
+                          ? response[field].join(', ')
+                          : response[field]}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </Paper>
     </Box>
   );

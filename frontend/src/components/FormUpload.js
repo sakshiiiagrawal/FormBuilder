@@ -1,16 +1,124 @@
-import React from 'react';
-import { Box, Typography, Paper } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Typography, Paper, Button, Alert, Link } from '@mui/material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 function FormUpload() {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      setError(null);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      setError('Please select a file first');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const response = await axios.post('http://localhost:8000/upload-file', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // Navigate to the form view page
+      navigate(`/form/${response.data.uuid}`);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Error uploading file');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 800, mx: 'auto', mt: 4 }}>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h4" gutterBottom>
-          Upload CSV
+          Upload Form Template
         </Typography>
-        <Typography>
-          CSV upload functionality coming soon...
+        
+        <Typography paragraph>
+          Download our sample template to see the required format:
         </Typography>
+        
+        <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+          <Link href="/templates/sample.csv" download>
+            <Button variant="outlined" startIcon={<CloudUploadIcon />}>
+              CSV TEMPLATE
+            </Button>
+          </Link>
+          <Link href="/templates/sample.xlsx" download>
+            <Button variant="outlined" startIcon={<CloudUploadIcon />}>
+              EXCEL TEMPLATE
+            </Button>
+          </Link>
+        </Box>
+
+        <Typography variant="h6" gutterBottom>
+          Supported Formats
+        </Typography>
+        
+        <Box component="ul" sx={{ mb: 3 }}>
+          <li>CSV (Comma Separated Values)</li>
+          <li>Excel Workbook (.xlsx)</li>
+          <li>Excel 97-2003 Workbook (.xls)</li>
+          <li>OpenDocument Spreadsheet (.ods)</li>
+        </Box>
+
+        <Box sx={{ mb: 3 }}>
+          <input
+            accept=".csv,.xlsx,.xls,.ods"
+            style={{ display: 'none' }}
+            id="file-upload"
+            type="file"
+            onChange={handleFileSelect}
+          />
+          <label htmlFor="file-upload">
+            <Button
+              variant="contained"
+              component="span"
+              startIcon={<CloudUploadIcon />}
+            >
+              CHOOSE FILE
+            </Button>
+          </label>
+          {selectedFile && (
+            <Typography sx={{ mt: 1 }}>
+              Selected file: {selectedFile.name}
+            </Typography>
+          )}
+        </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
+
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleUpload}
+          disabled={!selectedFile || loading}
+        >
+          {loading ? 'Uploading...' : 'UPLOAD AND CREATE FORM'}
+        </Button>
       </Paper>
     </Box>
   );
