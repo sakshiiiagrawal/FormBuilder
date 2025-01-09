@@ -20,6 +20,20 @@ function FormUpload() {
     }
   };
 
+  const formatErrorMessage = (error) => {
+    if (typeof error === 'string') return error;
+    if (error?.detail) return error.detail;
+    if (error?.message) return error.message;
+    if (typeof error === 'object') {
+      try {
+        return JSON.stringify(error);
+      } catch {
+        return 'An error occurred';
+      }
+    }
+    return 'An error occurred';
+  };
+
   const handleUpload = async () => {
     if (!selectedFile) {
       setError('Please select a file first');
@@ -51,7 +65,8 @@ function FormUpload() {
       // Navigate to the form view page
       navigate(`/form/${response.data.uuid}`);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Error uploading file');
+      const errorMessage = err.response?.data?.detail || err.message || 'Error uploading file';
+      setError(formatErrorMessage(errorMessage));
     } finally {
       setLoading(false);
     }
@@ -140,7 +155,7 @@ function FormUpload() {
 
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
+            {typeof error === 'string' ? error : 'An error occurred'}
           </Alert>
         )}
 
