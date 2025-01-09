@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Box, Typography, Paper, Button, Alert, Link } from '@mui/material';
+import { Box, Typography, Paper, Button, Alert, Link, TextField } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 function FormUpload() {
   const [selectedFile, setSelectedFile] = useState(null);
+  const [formName, setFormName] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -24,11 +26,20 @@ function FormUpload() {
       return;
     }
 
+    if (!formName.trim()) {
+      setError('Please enter a form name');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     const formData = new FormData();
     formData.append('file', selectedFile);
+    formData.append('form_name', formName);
+    if (password) {
+      formData.append('password', password);
+    }
 
     try {
       const response = await axios.post('http://localhost:8000/upload-file', formData, {
@@ -105,6 +116,28 @@ function FormUpload() {
           )}
         </Box>
 
+        <Box sx={{ mb: 3 }}>
+          <TextField
+            fullWidth
+            label="Form Name"
+            value={formName}
+            onChange={(e) => setFormName(e.target.value)}
+            required
+            margin="normal"
+            placeholder="Enter a name for your form"
+          />
+          <TextField
+            fullWidth
+            label="Password (Optional)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            margin="normal"
+            type="password"
+            placeholder="Set a password to protect form responses"
+            helperText="Leave blank for no password protection"
+          />
+        </Box>
+
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
             {error}
@@ -115,7 +148,7 @@ function FormUpload() {
           variant="contained"
           color="primary"
           onClick={handleUpload}
-          disabled={!selectedFile || loading}
+          disabled={!selectedFile || !formName.trim() || loading}
         >
           {loading ? 'Uploading...' : 'UPLOAD AND CREATE FORM'}
         </Button>

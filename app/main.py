@@ -68,12 +68,18 @@ def read_spreadsheet(file: UploadFile) -> pd.DataFrame:
 @app.post("/upload-file")
 async def upload_file(
     file: UploadFile = File(...),
+    form_name: str = Form(...),
+    password: str = Form(None),
     db: Session = Depends(get_db)
 ):
     try:
         # Validate file
         if not file or not file.filename:
             raise HTTPException(status_code=400, detail="No file provided")
+
+        # Validate form name
+        if not form_name or not form_name.strip():
+            raise HTTPException(status_code=400, detail="Form name is required")
 
         # Read file content
         try:
@@ -148,8 +154,9 @@ async def upload_file(
             form_uuid = str(uuid.uuid4())
             new_form = models.Form(
                 uuid=form_uuid,
-                title=f"Form from {file.filename}",
+                title=form_name.strip(),
                 fields=fields,
+                password=password.strip() if password else None,
                 created_at=datetime.utcnow()
             )
             
