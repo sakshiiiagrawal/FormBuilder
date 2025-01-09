@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import { Box, Typography, Paper, Button, Alert, Link, TextField } from '@mui/material';
+import { Box, Typography, Paper, Button, Alert, Link } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 function FormUpload() {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [formName, setFormName] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -20,28 +18,9 @@ function FormUpload() {
     }
   };
 
-  const formatErrorMessage = (error) => {
-    if (typeof error === 'string') return error;
-    if (error?.detail) return error.detail;
-    if (error?.message) return error.message;
-    if (typeof error === 'object') {
-      try {
-        return JSON.stringify(error);
-      } catch {
-        return 'An error occurred';
-      }
-    }
-    return 'An error occurred';
-  };
-
   const handleUpload = async () => {
     if (!selectedFile) {
       setError('Please select a file first');
-      return;
-    }
-
-    if (!formName.trim()) {
-      setError('Please enter a form name');
       return;
     }
 
@@ -50,10 +29,6 @@ function FormUpload() {
 
     const formData = new FormData();
     formData.append('file', selectedFile);
-    formData.append('form_name', formName);
-    if (password) {
-      formData.append('password', password);
-    }
 
     try {
       const response = await axios.post('http://localhost:8000/upload-file', formData, {
@@ -65,8 +40,7 @@ function FormUpload() {
       // Navigate to the form view page
       navigate(`/form/${response.data.uuid}`);
     } catch (err) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Error uploading file';
-      setError(formatErrorMessage(errorMessage));
+      setError(err.response?.data?.detail || 'Error uploading file');
     } finally {
       setLoading(false);
     }
@@ -131,31 +105,9 @@ function FormUpload() {
           )}
         </Box>
 
-        <Box sx={{ mb: 3 }}>
-          <TextField
-            fullWidth
-            label="Form Name"
-            value={formName}
-            onChange={(e) => setFormName(e.target.value)}
-            required
-            margin="normal"
-            placeholder="Enter a name for your form"
-          />
-          <TextField
-            fullWidth
-            label="Password (Optional)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            margin="normal"
-            type="password"
-            placeholder="Set a password to protect form responses"
-            helperText="Leave blank for no password protection"
-          />
-        </Box>
-
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
-            {typeof error === 'string' ? error : 'An error occurred'}
+            {error}
           </Alert>
         )}
 
@@ -163,7 +115,7 @@ function FormUpload() {
           variant="contained"
           color="primary"
           onClick={handleUpload}
-          disabled={!selectedFile || !formName.trim() || loading}
+          disabled={!selectedFile || loading}
         >
           {loading ? 'Uploading...' : 'UPLOAD AND CREATE FORM'}
         </Button>
