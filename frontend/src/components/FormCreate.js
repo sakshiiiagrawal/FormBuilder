@@ -20,12 +20,19 @@ const FIELD_TYPES = [
   { value: 'multiselect', label: 'Multi Select' }
 ];
 
+// Helper function to get default expiry date (24 hours from now)
+const getDefaultExpiry = () => {
+  const date = new Date();
+  date.setHours(date.getHours() + 24);
+  return date.toISOString().slice(0, 16); // Format for datetime-local input
+};
+
 function FormCreate() {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [fields, setFields] = useState([{ name: '', type: 'text', options: [] }]);
   const [password, setPassword] = useState('');
-  const [expiry, setExpiry] = useState('');
+  const [expiry, setExpiry] = useState(getDefaultExpiry());
 
   const handleAddField = () => {
     setFields([...fields, { name: '', type: 'text', options: [] }]);
@@ -50,8 +57,8 @@ function FormCreate() {
           acc[field.name] = field.type === 'text' ? null : field.options;
           return acc;
         }, {}),
-        password: password || null,
-        expiry: expiry ? new Date(expiry).toISOString() : null
+        password: password,
+        expiry: new Date(expiry).toISOString()
       };
 
       const response = await axios.post('http://localhost:8000/create-form', formData);
@@ -139,27 +146,31 @@ function FormCreate() {
           </Button>
 
           <TextField
-            label="Password (optional)"
+            label="Password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
             fullWidth
+            helperText="Password is required for viewing responses"
           />
 
           <TextField
-            label="Expiry Date (optional)"
+            label="Expiry Date"
             type="datetime-local"
             value={expiry}
             onChange={(e) => setExpiry(e.target.value)}
             InputLabelProps={{ shrink: true }}
+            required
             fullWidth
+            helperText="Form will expire after this time"
           />
 
           <Button
             type="submit"
             variant="contained"
             size="large"
-            disabled={!title || fields.some(f => !f.name)}
+            disabled={!title || !password || fields.some(f => !f.name)}
           >
             Create Form
           </Button>
