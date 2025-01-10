@@ -14,6 +14,7 @@ import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import SuccessDialog from './SuccessDialog';
+import { getApiUrl, API_ENDPOINTS } from '../config';
 
 const FIELD_TYPES = [
   { value: 'text', label: 'Text Input' },
@@ -75,7 +76,7 @@ function FormCreate() {
         expiry: new Date(expiry).toISOString()
       };
 
-      const response = await axios.post('http://localhost:8000/create-form', formData);
+      const response = await axios.post(getApiUrl(API_ENDPOINTS.CREATE_FORM), formData);
       const formUrl = `${window.location.origin}/form/${response.data.uuid}`;
       setFormLink(formUrl);
       setSuccessDialogOpen(true);
