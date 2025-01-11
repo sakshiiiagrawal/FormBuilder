@@ -6,11 +6,11 @@ import {
   DialogActions,
   Button,
   Typography,
-  Box,
+  Stack,
   TextField,
   IconButton,
   Snackbar,
-  Stack,
+  Box,
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
@@ -23,9 +23,10 @@ function SuccessDialog({
   open, 
   onClose, 
   title, 
-  message, 
+  message,
+  onSubmitAnother,
   link,
-  showShare = true 
+  showShare = false
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -91,7 +92,7 @@ function SuccessDialog({
             {message}
           </Typography>
 
-          {showShare && (
+          {showShare && link && (
             <Box sx={{ mt: 3 }}>
               <Stack spacing={2}>
                 <TextField
@@ -124,13 +125,23 @@ function SuccessDialog({
         </DialogContent>
 
         <DialogActions sx={{ justifyContent: 'center', pt: 2 }}>
-          <Button 
-            onClick={onClose}
-            variant="contained"
-            sx={{ px: 4 }}
-          >
-            Done
-          </Button>
+          <Stack direction="row" spacing={2}>
+            <Button 
+              onClick={onClose}
+              variant="outlined"
+            >
+              Close
+            </Button>
+            {onSubmitAnother && (
+              <Button 
+                onClick={onSubmitAnother}
+                variant="contained"
+                color="primary"
+              >
+                Submit Another Response
+              </Button>
+            )}
+          </Stack>
         </DialogActions>
       </Dialog>
 

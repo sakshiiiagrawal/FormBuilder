@@ -213,6 +213,7 @@ function FormCreate() {
         title="Form Created Successfully!"
         message="Your form has been created. Share the link below with others to collect responses."
         link={formLink}
+        showShare={true}
       />
     </>
   );

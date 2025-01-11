@@ -13,6 +13,7 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  TextField,
 } from '@mui/material';
 import {
   CloudUpload as CloudUploadIcon,
@@ -37,6 +38,8 @@ function FileUpload() {
   const [error, setError] = useState(null);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [formLink, setFormLink] = useState('');
+  const [formTitle, setFormTitle] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
@@ -58,9 +61,19 @@ function FileUpload() {
       setError('Please select a file');
       return;
     }
+    if (!formTitle.trim()) {
+      setError('Please enter a form title');
+      return;
+    }
+    if (!password.trim()) {
+      setError('Please enter a password');
+      return;
+    }
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('title', formTitle);
+    formData.append('password', password);
 
     try {
       const response = await axios.post(getApiUrl(API_ENDPOINTS.UPLOAD_FILE), formData, {
@@ -119,22 +132,26 @@ function FileUpload() {
             <Divider />
 
             <Box>
-              <Typography variant="h6" gutterBottom>
-                Supported Formats
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Supported Formats:
               </Typography>
-              <List dense>
+              <Stack direction="row" spacing={1} flexWrap="wrap" justifyContent="center">
                 {SUPPORTED_FORMATS.map((format) => (
-                  <ListItem key={format.extension}>
-                    <ListItemIcon>
-                      <DescriptionIcon color="primary" />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={format.description}
-                      secondary={`.${format.extension}`}
-                    />
-                  </ListItem>
+                  <Typography 
+                    key={format.extension} 
+                    variant="caption" 
+                    color="text.secondary"
+                    sx={{ 
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5 
+                    }}
+                  >
+                    <DescriptionIcon sx={{ fontSize: 16 }} />
+                    {format.extension.toUpperCase()}
+                  </Typography>
                 ))}
-              </List>
+              </Stack>
             </Box>
 
             <Divider />
@@ -149,45 +166,61 @@ function FileUpload() {
                 textAlign: 'center'
               }}
             >
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls,.ods,.numbers"
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-                id="file-upload"
-              />
-              <label htmlFor="file-upload">
+              <Stack spacing={2}>
+                <TextField
+                  required
+                  label="Form Title"
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  required
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  fullWidth
+                />
+
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls,.ods,.numbers"
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                  id="file-upload"
+                />
+                <label htmlFor="file-upload">
+                  <Button
+                    variant="contained"
+                    component="span"
+                    startIcon={<CloudUploadIcon />}
+                  >
+                    Choose File
+                  </Button>
+                </label>
+
+                {file && (
+                  <Typography color="text.secondary">
+                    Selected file: {file.name}
+                  </Typography>
+                )}
+
+                {error && (
+                  <Alert severity="error">
+                    {error}
+                  </Alert>
+                )}
+
                 <Button
+                  type="submit"
                   variant="contained"
-                  component="span"
-                  startIcon={<CloudUploadIcon />}
-                  sx={{ mb: 2 }}
+                  disabled={!file || !formTitle.trim() || !password.trim()}
+                  fullWidth
                 >
-                  Choose File
+                  Upload and Create Form
                 </Button>
-              </label>
-
-              {file && (
-                <Typography color="text.secondary">
-                  Selected file: {file.name}
-                </Typography>
-              )}
-
-              {error && (
-                <Alert severity="error" sx={{ mt: 2 }}>
-                  {error}
-                </Alert>
-              )}
-
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={!file}
-                sx={{ mt: 3 }}
-                fullWidth
-              >
-                Upload and Create Form
-              </Button>
+              </Stack>
             </Box>
           </Stack>
         </Paper>
@@ -199,6 +232,7 @@ function FileUpload() {
         title="Form Created Successfully!"
         message="Your form has been created from the uploaded file. Share the link below with others to collect responses."
         link={formLink}
+        showShare={true}
       />
     </>
   );

@@ -87,6 +87,22 @@ function FormView() {
     navigate('/');
   };
 
+  const handleSubmitAnother = () => {
+    setSuccessDialogOpen(false);
+    // Reset form responses
+    const initialResponses = {};
+    Object.entries(form.fields).forEach(([fieldName, options]) => {
+      if (options === 'image') {
+        initialResponses[fieldName] = null;
+      } else if (Array.isArray(options)) {
+        initialResponses[fieldName] = options[0];
+      } else {
+        initialResponses[fieldName] = '';
+      }
+    });
+    setResponses(initialResponses);
+  };
+
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -429,9 +445,9 @@ function FormView() {
       <SuccessDialog
         open={successDialogOpen}
         onClose={handleCloseDialog}
+        onSubmitAnother={handleSubmitAnother}
         title="Response Submitted Successfully!"
-        message="Thank you for submitting your response. You can share this form with others using the link below."
-        link={window.location.href}
+        message="Thank you for submitting your response."
       />
     </>
   );

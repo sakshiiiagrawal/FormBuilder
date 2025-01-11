@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { getApiUrl, API_ENDPOINTS } from '../config';
 import {
   Box,
@@ -27,18 +27,18 @@ import { LocationOn, Close } from '@mui/icons-material';
 import axios from 'axios';
 
 function ViewResponses() {
+  const { uuid } = useParams();
+  const navigate = useNavigate();
   const [responses, setResponses] = useState([]);
-  const [password, setPassword] = useState('');
-  const [formId, setFormId] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fields, setFields] = useState([]);
   const [expandedImage, setExpandedImage] = useState(null);
 
-  const fetchResponses = useCallback(async (uuid, pwd) => {
+  const fetchResponses = useCallback(async (formUuid, pwd) => {
     try {
       setLoading(true);
-      const response = await axios.get(getApiUrl(API_ENDPOINTS.VIEW_RESPONSES(uuid)) + `?password=${pwd}`);
+      const response = await axios.get(getApiUrl(API_ENDPOINTS.VIEW_RESPONSES(formUuid)) + `?password=${pwd}`);
       setResponses(response.data.responses);
       setFields(response.data.fields);
       setError(null);
@@ -49,12 +49,16 @@ function ViewResponses() {
     }
   }, []);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (formId && password) {
-      fetchResponses(formId, password);
+  useEffect(() => {
+    if (uuid) {
+      const password = localStorage.getItem(`form_password_${uuid}`);
+      if (password) {
+        fetchResponses(uuid, password);
+      } else {
+        navigate('/');
+      }
     }
-  };
+  }, [uuid, fetchResponses, navigate]);
 
   const handleImageClick = (imageData) => {
     setExpandedImage(imageData);
@@ -133,7 +137,7 @@ function ViewResponses() {
 
   return (
     <>
-      <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
+      <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
         <Paper sx={{ p: 4, borderRadius: 2 }}>
           <Typography 
             variant="h4" 
@@ -145,44 +149,8 @@ function ViewResponses() {
               color: 'primary.main'
             }}
           >
-            View Form Responses
+            Form Responses
           </Typography>
-
-          <form onSubmit={handleSubmit}>
-            <Stack spacing={3} sx={{ mb: 4 }}>
-              <TextField
-                label="Form ID"
-                value={formId}
-                onChange={(e) => setFormId(e.target.value)}
-                required
-                fullWidth
-                placeholder="Enter the form UUID"
-              />
-              <TextField
-                margin="dense"
-                label="Password"
-                type="password"
-                fullWidth
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="Enter the form password"
-              />
-              <Button 
-                type="submit" 
-                variant="contained" 
-                size="large"
-                fullWidth
-              >
-                View Responses
-              </Button>
-              {error && (
-                <Alert severity="error">
-                  {error}
-                </Alert>
-              )}
-            </Stack>
-          </form>
 
           {loading && (
             <Box sx={{ width: '100%', mt: 2 }}>
@@ -191,41 +159,48 @@ function ViewResponses() {
             </Box>
           )}
 
-          {responses.length === 0 ? (
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          )}
+
+          {responses.length === 0 && !loading ? (
             <Alert severity="info">No responses yet</Alert>
           ) : (
-            <Stack spacing={4}>
-              {responses.map((response, index) => (
-                <Paper 
-                  key={index} 
-                  elevation={1} 
-                  sx={{ 
-                    p: 3,
-                    backgroundColor: index % 2 === 0 ? 'background.default' : 'background.paper'
-                  }}
-                >
-                  <Stack spacing={3}>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Response #</TableCell>
                     {fields.map((field) => (
-                      <Box key={field}>
-                        <Typography 
-                          variant="subtitle1" 
-                          sx={{ 
-                            fontWeight: 600,
-                            color: 'primary.main',
-                            mb: 1
-                          }}
-                        >
-                          {field}
-                        </Typography>
-                        <Box sx={{ pl: 2 }}>
-                          {renderCellContent(field, response[field])}
-                        </Box>
-                      </Box>
+                      <TableCell key={field} sx={{ fontWeight: 'bold' }}>
+                        {field}
+                      </TableCell>
                     ))}
-                  </Stack>
-                </Paper>
-              ))}
-            </Stack>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {responses.map((response, index) => (
+                    <TableRow 
+                      key={index}
+                      sx={{ 
+                        '&:nth-of-type(odd)': { 
+                          backgroundColor: 'background.default' 
+                        }
+                      }}
+                    >
+                      <TableCell>{index + 1}</TableCell>
+                      {fields.map((field) => (
+                        <TableCell key={field}>
+                          {renderCellContent(field, response[field])}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </Paper>
       </Box>

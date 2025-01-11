@@ -41,7 +41,8 @@ function Home() {
       setError('Please fill in all fields');
       return;
     }
-    navigate(`/responses/${formId}?password=${password}`);
+    localStorage.setItem(`form_password_${formId}`, password);
+    navigate(`/responses/${formId}`);
     setViewDialogOpen(false);
     setFormId('');
     setPassword('');
@@ -155,7 +156,7 @@ function Home() {
               fullWidth
               sx={{ py: 1.5 }}
             >
-              Upload CSV
+              Upload Template
             </Button>
           </Stack>
         </DialogContent>
