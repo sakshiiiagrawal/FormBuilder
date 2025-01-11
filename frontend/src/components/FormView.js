@@ -508,21 +508,35 @@ function FormView() {
   };
 
   const validateForm = () => {
+    if (!form || !form.fields) return false;
+
     for (const [fieldName, fieldConfig] of Object.entries(form.fields)) {
-      const isRequired = fieldConfig.required || false;
-      if (isRequired) {
+      // Check if the field is required
+      if (fieldConfig.required === true) {
         const response = responses[fieldName];
-        if (!response || !response.value || response.value.length === 0) {
+        
+        // Check if the main field has a value
+        if (!response?.value || response.value.length === 0) {
           return false;
         }
-        
-        // Check sub-questions if they exist and are required
-        if (fieldConfig.subQuestions && response?.value) {
+
+        // If this field has sub-questions for the selected option
+        if (fieldConfig.subQuestions && response.value) {
           const subQuestions = fieldConfig.subQuestions[response.value] || [];
-          for (const subQuestion of subQuestions) {
-            if (subQuestion.required) {
-              const subResponse = response.subResponses?.[subQuestion.name];
-              if (!subResponse || (Array.isArray(subResponse) ? subResponse.length === 0 : !subResponse)) {
+          
+          // If there are sub-questions, ensure ALL of them are answered
+          if (subQuestions.length > 0) {
+            // Check if subResponses exists and has entries for all sub-questions
+            if (!response.subResponses) return false;
+            
+            // Check each sub-question is answered, regardless of required status
+            for (const subQuestion of subQuestions) {
+              const subResponse = response.subResponses[subQuestion.name];
+              
+              // Handle different types of sub-responses
+              if (!subResponse || 
+                  (Array.isArray(subResponse) && subResponse.length === 0) || 
+                  (typeof subResponse === 'string' && subResponse.trim() === '')) {
                 return false;
               }
             }
@@ -643,7 +657,7 @@ function FormView() {
                 }
               }}
             >
-              Submit Response
+              Submit Responsee
             </Button>
           </Stack>
         </Paper>
