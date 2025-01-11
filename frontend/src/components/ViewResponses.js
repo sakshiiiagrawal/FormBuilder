@@ -24,8 +24,17 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
-import { FileDownload, TableView, ViewModule as CardViewIcon, ViewList as TableViewIcon } from '@mui/icons-material';
+import { 
+  FileDownload, 
+  TableView, 
+  ViewModule as CardViewIcon, 
+  ViewList as TableViewIcon,
+  Search as SearchIcon,
+  Clear as ClearIcon,
+} from '@mui/icons-material';
 
 function ViewResponses() {
   const { uuid } = useParams();
@@ -34,8 +43,9 @@ function ViewResponses() {
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [viewMode, setViewMode] = useState(0); // 0 for cards, 1 for table
+  const [viewMode, setViewMode] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const open = Boolean(anchorEl);
 
   useEffect(() => {
@@ -198,88 +208,187 @@ function ViewResponses() {
     handleExportClose();
   };
 
-  const renderCardView = () => (
-    <Stack spacing={2.5}>
-      {responses.map((response, index) => (
-        <Paper
-          key={index}
-          elevation={1}
-          sx={{
-            p: 3,
-            borderRadius: 2,
-            backgroundColor: 'rgba(245, 247, 250, 0.85)',
-            backdropFilter: 'blur(10px)',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            '&:hover': {
-              transform: 'translateY(-4px)',
-              boxShadow: '0 6px 12px rgba(0,0,0,0.08)',
-              backgroundColor: 'rgba(245, 247, 250, 0.95)',
-            }
-          }}
-        >
-          <Typography 
-            variant="h6" 
-            gutterBottom 
-            sx={{ 
-              color: 'text.primary',
-              fontWeight: 500,
-              mb: 2
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+  };
+
+  const filterResponses = (responses) => {
+    if (!searchQuery.trim()) return responses;
+    
+    const query = searchQuery.toLowerCase().trim();
+    
+    return responses.filter(response => {
+      // Search in main responses
+      const mainResponses = Object.entries(response).some(([fieldName, fieldResponse]) => {
+        const value = fieldResponse?.value?.toString().toLowerCase() || '';
+        return value.includes(query);
+      });
+
+      // Search in sub-responses
+      const subResponses = Object.entries(response).some(([fieldName, fieldResponse]) => {
+        if (!fieldResponse?.subResponses) return false;
+        return Object.values(fieldResponse.subResponses).some(subResponse => 
+          subResponse?.toString().toLowerCase().includes(query)
+        );
+      });
+
+      return mainResponses || subResponses;
+    });
+  };
+
+  const renderCardView = () => {
+    const filteredResponses = filterResponses(responses);
+    
+    return (
+      <>
+        <Box sx={{ mb: 3 }}>
+          <TextField
+            fullWidth
+            variant="outlined"
+            placeholder="Search in responses..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon color="action" />
+                </InputAdornment>
+              ),
+              endAdornment: searchQuery && (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="clear search"
+                    onClick={clearSearch}
+                    edge="end"
+                    size="small"
+                  >
+                    <ClearIcon />
+                  </IconButton>
+                </InputAdornment>
+              ),
+              sx: {
+                borderRadius: 2,
+                backgroundColor: 'background.paper',
+                '&:hover': {
+                  backgroundColor: 'background.paper',
+                },
+              }
             }}
-          >
-            Response #{index + 1}
-          </Typography>
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                  borderColor: 'divider',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'primary.main',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: 'primary.main',
+                },
+              },
+            }}
+          />
+        </Box>
+        {filteredResponses.length === 0 ? (
+          <Box sx={{ 
+            textAlign: 'center', 
+            py: 4,
+            backgroundColor: 'rgba(245, 247, 250, 0.85)',
+            borderRadius: 2,
+          }}>
+            <Typography color="text.secondary">
+              No responses match your search
+            </Typography>
+          </Box>
+        ) : (
           <Stack spacing={2.5}>
-            {Object.entries(fields).map(([fieldName, fieldConfig]) => (
-              <Box key={fieldName}>
+            {filteredResponses.map((response, index) => (
+              <Paper
+                key={index}
+                elevation={1}
+                sx={{
+                  p: 3,
+                  borderRadius: 2,
+                  backgroundColor: 'rgba(245, 247, 250, 0.85)',
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 6px 12px rgba(0,0,0,0.08)',
+                    backgroundColor: 'rgba(245, 247, 250, 0.95)',
+                  }
+                }}
+              >
                 <Typography 
-                  variant="subtitle2" 
+                  variant="h6" 
+                  gutterBottom 
                   sx={{ 
-                    color: 'text.secondary',
-                    mb: 0.5,
-                    fontWeight: 500
+                    color: 'text.primary',
+                    fontWeight: 500,
+                    mb: 2
                   }}
                 >
-                  {fieldName}
+                  Response #{index + 1}
                 </Typography>
-                <Typography variant="body1" sx={{ color: 'text.primary' }}>
-                  {response[fieldName]?.value || 'No response'}
-                </Typography>
-                {fieldConfig.subQuestions && response[fieldName]?.value && (
-                  <Box sx={{ 
-                    ml: 3, 
-                    mt: 1.5, 
-                    borderLeft: '2px solid rgba(0, 0, 0, 0.06)', 
-                    pl: 2 
-                  }}>
-                    {fieldConfig.subQuestions[response[fieldName].value]?.map((subQuestion) => (
-                      <Box key={subQuestion.name} sx={{ mb: 1.5 }}>
-                        <Typography 
-                          variant="subtitle2" 
-                          sx={{ 
-                            color: 'text.secondary',
-                            fontSize: '0.875rem',
-                            mb: 0.5
-                          }}
-                        >
-                          {subQuestion.name}
-                        </Typography>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ color: 'text.secondary' }}
-                        >
-                          {response[fieldName]?.subResponses?.[subQuestion.name] || 'No response'}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Box>
-                )}
-              </Box>
+                <Stack spacing={2.5}>
+                  {Object.entries(fields).map(([fieldName, fieldConfig]) => (
+                    <Box key={fieldName}>
+                      <Typography 
+                        variant="subtitle2" 
+                        sx={{ 
+                          color: 'text.secondary',
+                          mb: 0.5,
+                          fontWeight: 500
+                        }}
+                      >
+                        {fieldName}
+                      </Typography>
+                      <Typography variant="body1" sx={{ color: 'text.primary' }}>
+                        {response[fieldName]?.value || 'No response'}
+                      </Typography>
+                      {fieldConfig.subQuestions && response[fieldName]?.value && (
+                        <Box sx={{ 
+                          ml: 3, 
+                          mt: 1.5, 
+                          borderLeft: '2px solid rgba(0, 0, 0, 0.06)', 
+                          pl: 2 
+                        }}>
+                          {fieldConfig.subQuestions[response[fieldName].value]?.map((subQuestion) => (
+                            <Box key={subQuestion.name} sx={{ mb: 1.5 }}>
+                              <Typography 
+                                variant="subtitle2" 
+                                sx={{ 
+                                  color: 'text.secondary',
+                                  fontSize: '0.875rem',
+                                  mb: 0.5
+                                }}
+                              >
+                                {subQuestion.name}
+                              </Typography>
+                              <Typography 
+                                variant="body2" 
+                                sx={{ color: 'text.secondary' }}
+                              >
+                                {response[fieldName]?.subResponses?.[subQuestion.name] || 'No response'}
+                              </Typography>
+                            </Box>
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
+                  ))}
+                </Stack>
+              </Paper>
             ))}
           </Stack>
-        </Paper>
-      ))}
-    </Stack>
-  );
+        )}
+      </>
+    );
+  };
 
   const renderTableView = () => (
     <TableContainer component={Paper} sx={{ mt: 2 }}>
