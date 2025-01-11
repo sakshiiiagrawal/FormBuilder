@@ -33,6 +33,7 @@ function ViewResponses() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fields, setFields] = useState([]);
+  const [formTitle, setFormTitle] = useState('');
   const [expandedImage, setExpandedImage] = useState(null);
 
   const fetchResponses = useCallback(async (formUuid, pwd) => {
@@ -41,6 +42,7 @@ function ViewResponses() {
       const response = await axios.get(getApiUrl(API_ENDPOINTS.VIEW_RESPONSES(formUuid)) + `?password=${pwd}`);
       setResponses(response.data.responses);
       setFields(response.data.fields);
+      setFormTitle(response.data.title);
       setError(null);
     } catch (error) {
       setError(error.response?.data?.detail || 'Error loading responses');
@@ -137,16 +139,28 @@ function ViewResponses() {
 
   return (
     <>
-      <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
+      <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
         <Paper sx={{ p: 4, borderRadius: 2 }}>
           <Typography 
             variant="h4" 
             gutterBottom 
             align="center"
             sx={{ 
-              mb: 4,
               fontWeight: 600,
               color: 'primary.main'
+            }}
+          >
+            {formTitle}
+          </Typography>
+
+          <Typography 
+            variant="h5" 
+            gutterBottom 
+            align="center"
+            sx={{ 
+              mb: 4,
+              fontWeight: 500,
+              color: 'text.secondary'
             }}
           >
             Form Responses
@@ -168,39 +182,73 @@ function ViewResponses() {
           {responses.length === 0 && !loading ? (
             <Alert severity="info">No responses yet</Alert>
           ) : (
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Response #</TableCell>
-                    {fields.map((field) => (
-                      <TableCell key={field} sx={{ fontWeight: 'bold' }}>
-                        {field}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {responses.map((response, index) => (
-                    <TableRow 
-                      key={index}
-                      sx={{ 
-                        '&:nth-of-type(odd)': { 
-                          backgroundColor: 'background.default' 
-                        }
-                      }}
-                    >
-                      <TableCell>{index + 1}</TableCell>
-                      {fields.map((field) => (
-                        <TableCell key={field}>
+            <Stack spacing={4}>
+              {responses.map((response, responseIndex) => (
+                <Paper 
+                  key={responseIndex} 
+                  elevation={1}
+                  sx={{ 
+                    p: 3,
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: 'divider'
+                  }}
+                >
+                  <Typography 
+                    variant="h6" 
+                    gutterBottom 
+                    sx={{ 
+                      color: 'primary.main',
+                      fontWeight: 600,
+                      pb: 2,
+                      borderBottom: '1px solid',
+                      borderColor: 'divider'
+                    }}
+                  >
+                    Response #{responseIndex + 1}
+                  </Typography>
+                  
+                  <Stack spacing={3} sx={{ mt: 2 }}>
+                    {fields.map((field, fieldIndex) => (
+                      <Box key={field}>
+                        <Typography 
+                          variant="subtitle1" 
+                          sx={{ 
+                            fontWeight: 600,
+                            color: 'text.secondary',
+                            mb: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1
+                          }}
+                        >
+                          <Box 
+                            sx={{ 
+                              minWidth: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              backgroundColor: 'primary.main',
+                              color: 'white',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.875rem',
+                              fontWeight: 600
+                            }}
+                          >
+                            {fieldIndex + 1}
+                          </Box>
+                          {field}
+                        </Typography>
+                        <Box sx={{ pl: 4 }}>
                           {renderCellContent(field, response[field])}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Stack>
+                </Paper>
+              ))}
+            </Stack>
           )}
         </Paper>
       </Box>
