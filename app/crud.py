@@ -88,22 +88,30 @@ def get_responses(db: Session, form_uuid: Union[str, uuid.UUID], password: str):
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid UUID format")
     
+    # Get the form first
     form = get_form(db, form_uuid)
     if not form:
         raise HTTPException(status_code=404, detail="Form not found")
     
-    # Check if form requires password
+    # Validate password
     if form.password:
         if not password:
-            raise HTTPException(status_code=401, detail="Password required to view responses")
+            raise HTTPException(
+                status_code=422, 
+                detail="Password is required to view responses"
+            )
         if password != form.password:
-            raise HTTPException(status_code=401, detail="Invalid password")
+            raise HTTPException(
+                status_code=401, 
+                detail="Invalid password"
+            )
     
+    # Get responses
     responses = db.query(models.Response).filter(
         models.Response.form_uuid == form_uuid
     ).all()
     
-    # Convert UUIDs to strings in responses
+    # Convert UUIDs to strings
     for response in responses:
         response.id = str(response.id)
         response.form_uuid = str(response.form_uuid)
@@ -111,27 +119,34 @@ def get_responses(db: Session, form_uuid: Union[str, uuid.UUID], password: str):
     # Process fields to include sub-questions
     processed_fields = {}
     for field_name, field_config in form.fields.items():
-        if isinstance(field_config, dict) and 'options' in field_config:
+        if isinstance(field_config, dict):
             processed_fields[field_name] = {
-                'type': 'dropdown' if len(field_config.get('subQuestions', {})) == 0 else 'multiselect',
-                'options': field_config['options'],
+                'type': field_config.get('type', 'text'),
+                'options': field_config.get('options', []),
+                'required': field_config.get('required', False),
                 'subQuestions': field_config.get('subQuestions', {})
             }
         else:
-            processed_fields[field_name] = field_config
+            processed_fields[field_name] = {
+                'type': 'text',
+                'required': False
+            }
 
-    # Process responses to include sub-responses
+    # Process responses
     processed_responses = []
     for response in responses:
         processed_response = {}
         for field_name, response_data in response.response_data.items():
-            if isinstance(response_data, dict) and 'value' in response_data:
+            if isinstance(response_data, dict):
                 processed_response[field_name] = {
-                    'value': response_data['value'],
+                    'value': response_data.get('value', ''),
                     'subResponses': response_data.get('subResponses', {})
                 }
             else:
-                processed_response[field_name] = response_data
+                processed_response[field_name] = {
+                    'value': response_data,
+                    'subResponses': {}
+                }
         processed_responses.append(processed_response)
     
     return {
