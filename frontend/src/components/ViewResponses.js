@@ -70,71 +70,46 @@ function ViewResponses() {
     setExpandedImage(null);
   };
 
-  const renderCellContent = (field, value) => {
-    if (!value) return '';
-    
-    try {
-      const parsed = JSON.parse(value);
-      if (parsed.base64 && parsed.timestamp && parsed.location) {
-        return (
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center',
-            gap: 1,
-            padding: 2,
-            '& img': {
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-              '&:hover': {
-                transform: 'scale(1.05)'
-              }
-            }
-          }}>
-            <img 
-              src={parsed.base64} 
-              alt="Captured" 
-              style={{ 
-                width: '200px',
-                height: '150px',
-                objectFit: 'cover',
-                borderRadius: '8px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-              }} 
-              onClick={() => handleImageClick(parsed)}
-            />
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                color: 'text.secondary',
-                fontWeight: 500
-              }}
-            >
-              {new Date(parsed.timestamp).toLocaleString()}
-            </Typography>
-            <Button
-              variant="outlined"
-              size="small"
-              href={`https://www.google.com/maps?q=${parsed.location.latitude},${parsed.location.longitude}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              startIcon={<LocationOn />}
-              sx={{ 
-                textTransform: 'none',
-                borderRadius: '20px',
-                fontSize: '0.75rem'
-              }}
-            >
-              View Location
-            </Button>
-          </Box>
-        );
-      }
-    } catch (e) {
-      // If not a valid JSON string, treat as normal value
+  const renderResponse = (fieldName, fieldConfig, response) => {
+    if (typeof response === 'object' && response.value) {
+      return (
+        <Box>
+          <Typography variant="body1">
+            {response.value}
+          </Typography>
+          {response.subResponses && fieldConfig.subQuestions?.[response.value] && (
+            <Box sx={{ ml: 4, mt: 1, pl: 2, borderLeft: '2px solid #e0e0e0' }}>
+              {fieldConfig.subQuestions[response.value].map((subQuestion, index) => (
+                <Box key={index} sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" color="textSecondary">
+                    {subQuestion.name}:
+                  </Typography>
+                  <Typography variant="body2">
+                    {Array.isArray(response.subResponses[subQuestion.name]) 
+                      ? response.subResponses[subQuestion.name].join(', ')
+                      : response.subResponses[subQuestion.name]}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+      );
     }
 
-    return Array.isArray(value) ? value.join(', ') : value;
+    if (typeof response === 'string' && response.startsWith('data:image')) {
+      return (
+        <Box>
+          <img 
+            src={response} 
+            alt="Response" 
+            style={{ maxWidth: '100%', maxHeight: '200px' }} 
+          />
+        </Box>
+      );
+    }
+
+    return <Typography variant="body1">{response || '-'}</Typography>;
   };
 
   return (
@@ -184,65 +159,17 @@ function ViewResponses() {
           ) : (
             <Stack spacing={4}>
               {responses.map((response, responseIndex) => (
-                <Paper 
-                  key={responseIndex} 
-                  elevation={1}
-                  sx={{ 
-                    p: 3,
-                    borderRadius: 2,
-                    border: '1px solid',
-                    borderColor: 'divider'
-                  }}
-                >
-                  <Typography 
-                    variant="h6" 
-                    gutterBottom 
-                    sx={{ 
-                      color: 'primary.main',
-                      fontWeight: 600,
-                      pb: 2,
-                      borderBottom: '1px solid',
-                      borderColor: 'divider'
-                    }}
-                  >
+                <Paper key={responseIndex} elevation={2} sx={{ p: 3, mb: 3 }}>
+                  <Typography variant="h6" gutterBottom>
                     Response #{responseIndex + 1}
                   </Typography>
-                  
-                  <Stack spacing={3} sx={{ mt: 2 }}>
-                    {fields.map((field, fieldIndex) => (
-                      <Box key={field}>
-                        <Typography 
-                          variant="subtitle1" 
-                          sx={{ 
-                            fontWeight: 600,
-                            color: 'text.secondary',
-                            mb: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1
-                          }}
-                        >
-                          <Box 
-                            sx={{ 
-                              minWidth: '24px',
-                              height: '24px',
-                              borderRadius: '50%',
-                              backgroundColor: 'primary.main',
-                              color: 'white',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '0.875rem',
-                              fontWeight: 600
-                            }}
-                          >
-                            {fieldIndex + 1}
-                          </Box>
-                          {field}
+                  <Stack spacing={2}>
+                    {Object.entries(fields).map(([fieldName, fieldConfig]) => (
+                      <Box key={fieldName}>
+                        <Typography variant="subtitle1" color="primary" gutterBottom>
+                          {fieldName}
                         </Typography>
-                        <Box sx={{ pl: 4 }}>
-                          {renderCellContent(field, response[field])}
-                        </Box>
+                        {renderResponse(fieldName, fieldConfig, response[fieldName])}
                       </Box>
                     ))}
                   </Stack>

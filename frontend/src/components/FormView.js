@@ -18,6 +18,9 @@ import {
   CardContent,
   LinearProgress,
   IconButton,
+  InputLabel,
+  OutlinedInput,
+  Chip,
 } from '@mui/material';
 import { Send as SendIcon, CameraAlt, PhotoLibrary, LocationOn } from '@mui/icons-material';
 import axios from 'axios';
@@ -44,20 +47,28 @@ function FormView() {
       try {
         const response = await axios.get(getApiUrl(API_ENDPOINTS.GET_FORM(uuid)));
         setForm(response.data);
-        // Initialize responses object with first option for dropdowns
+        // Initialize responses object with empty values
         const initialResponses = {};
-        Object.entries(response.data.fields).forEach(([fieldName, options]) => {
-          if (options === 'image') {
+        Object.entries(response.data.fields).forEach(([fieldName, fieldConfig]) => {
+          if (fieldConfig.type === 'image') {
             initialResponses[fieldName] = null;
-          } else if (Array.isArray(options)) {
-            initialResponses[fieldName] = options[0]; // Default to first option for dropdowns
+          } else if (fieldConfig.type === 'dropdown' || fieldConfig.type === 'multiselect') {
+            initialResponses[fieldName] = {
+              value: fieldConfig.options[0] || '',
+              subResponses: {}
+            };
           } else {
-            initialResponses[fieldName] = '';
+            initialResponses[fieldName] = {
+              value: '',
+              subResponses: null
+            };
           }
         });
         setResponses(initialResponses);
       } catch (error) {
-        setError(error.response?.data?.detail || 'Error loading form');
+        const errorMessage = error.response?.data?.detail || 
+                           (error.response?.data?.msg ? JSON.stringify(error.response.data.msg) : 'Error loading form');
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -66,23 +77,66 @@ function FormView() {
     fetchForm();
   }, [uuid]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(getApiUrl(API_ENDPOINTS.SUBMIT_FORM(uuid)), {
-        response_data: responses
-      });
-      setSuccessDialogOpen(true);
-    } catch (error) {
-      setError(error.response?.data?.detail || 'Error submitting form');
-    }
-  };
-
   const handleChange = (fieldName, value) => {
     setResponses(prev => ({
       ...prev,
-      [fieldName]: value
+      [fieldName]: typeof value === 'object' ? value : { value: value, subResponses: null }
     }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate required fields
+    const missingRequiredFields = [];
+    Object.entries(form.fields).forEach(([fieldName, fieldConfig]) => {
+      const isRequired = fieldConfig.required || false;
+      if (isRequired) {
+        const response = responses[fieldName];
+        if (!response || !response.value || response.value.length === 0) {
+          missingRequiredFields.push(fieldName);
+        }
+        
+        // Check sub-questions if they exist and are required
+        if (fieldConfig.subQuestions && response?.value) {
+          const subQuestions = fieldConfig.subQuestions[response.value] || [];
+          subQuestions.forEach(subQuestion => {
+            if (subQuestion.required) {
+              const subResponse = response.subResponses?.[subQuestion.name];
+              if (!subResponse || (Array.isArray(subResponse) ? subResponse.length === 0 : !subResponse)) {
+                missingRequiredFields.push(`${fieldName} > ${subQuestion.name}`);
+              }
+            }
+          });
+        }
+      }
+    });
+
+    if (missingRequiredFields.length > 0) {
+      setError(`Please fill in all required fields: ${missingRequiredFields.join(', ')}`);
+      return;
+    }
+
+    try {
+      // Format response data according to the schema
+      const formattedResponses = Object.entries(responses).reduce((acc, [key, value]) => {
+        if (form.fields[key] === 'image') {
+          acc[key] = { value: value, subResponses: null };
+        } else {
+          acc[key] = typeof value === 'object' ? value : { value: value, subResponses: null };
+        }
+        return acc;
+      }, {});
+
+      await axios.post(getApiUrl(API_ENDPOINTS.SUBMIT_FORM(uuid)), {
+        response_data: formattedResponses
+      });
+      setSuccessDialogOpen(true);
+    } catch (error) {
+      const errorMessage = error.response?.data?.detail || 
+                         (error.response?.data?.msg ? JSON.stringify(error.response.data.msg) : 'Error submitting form');
+      setError(errorMessage);
+    }
   };
 
   const handleCloseDialog = () => {
@@ -202,11 +256,140 @@ function FormView() {
     }
   };
 
-  const renderField = (fieldName, options) => {
-    if (options === 'image') {
+  const renderField = (fieldName, fieldConfig) => {
+    // Add required indicator to field labels
+    const isRequired = fieldConfig.required || false;
+    const fieldLabel = isRequired ? `${fieldName} *` : fieldName;
+
+    // Check if fieldConfig is an object with options property
+    if (fieldConfig && typeof fieldConfig === 'object' && Array.isArray(fieldConfig.options)) {
+      const mainField = (
+        <FormControl fullWidth required={isRequired}>
+          <InputLabel>{fieldLabel}</InputLabel>
+          <Select
+            value={responses[fieldName]?.value || ''}
+            onChange={(e) => handleChange(fieldName, {
+              value: e.target.value,
+              subResponses: responses[fieldName]?.subResponses || {}
+            })}
+            input={<OutlinedInput label={fieldLabel} />}
+            error={isRequired && (!responses[fieldName]?.value || responses[fieldName]?.value.length === 0)}
+          >
+            {fieldConfig.options.map((option) => (
+              <MenuItem key={option} value={option}>
+                {option}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      );
+
+      // If there are sub-questions for the selected option
+      const selectedOption = responses[fieldName]?.value;
+      const subQuestions = fieldConfig.subQuestions?.[selectedOption] || [];
+
+      return (
+        <Stack spacing={2}>
+          {mainField}
+          {subQuestions.length > 0 && (
+            <Box sx={{ ml: 4, pl: 2, borderLeft: '2px solid #e0e0e0' }}>
+              {subQuestions.map((subQuestion, index) => {
+                const isSubRequired = subQuestion.required || false;
+                const subLabel = isSubRequired ? `${subQuestion.name} *` : subQuestion.name;
+                
+                return (
+                  <Box key={index} sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      {subLabel}
+                    </Typography>
+                    {subQuestion.type === 'text' ? (
+                      <TextField
+                        fullWidth
+                        required={isSubRequired}
+                        value={responses[fieldName]?.subResponses?.[subQuestion.name] || ''}
+                        onChange={(e) => {
+                          const newSubResponses = {
+                            ...(responses[fieldName]?.subResponses || {}),
+                            [subQuestion.name]: e.target.value
+                          };
+                          handleChange(fieldName, {
+                            value: responses[fieldName]?.value,
+                            subResponses: newSubResponses
+                          });
+                        }}
+                        error={isSubRequired && !responses[fieldName]?.subResponses?.[subQuestion.name]}
+                      />
+                    ) : subQuestion.type === 'dropdown' ? (
+                      <FormControl fullWidth required={isSubRequired}>
+                        <Select
+                          value={responses[fieldName]?.subResponses?.[subQuestion.name] || ''}
+                          onChange={(e) => {
+                            const newSubResponses = {
+                              ...(responses[fieldName]?.subResponses || {}),
+                              [subQuestion.name]: e.target.value
+                            };
+                            handleChange(fieldName, {
+                              value: responses[fieldName]?.value,
+                              subResponses: newSubResponses
+                            });
+                          }}
+                          error={isSubRequired && !responses[fieldName]?.subResponses?.[subQuestion.name]}
+                        >
+                          {(subQuestion.options || []).map((option) => (
+                            <MenuItem key={option} value={option}>
+                              {option}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    ) : subQuestion.type === 'multiselect' ? (
+                      <FormControl fullWidth required={isSubRequired}>
+                        <Select
+                          multiple
+                          value={responses[fieldName]?.subResponses?.[subQuestion.name] || []}
+                          onChange={(e) => {
+                            const newSubResponses = {
+                              ...(responses[fieldName]?.subResponses || {}),
+                              [subQuestion.name]: e.target.value
+                            };
+                            handleChange(fieldName, {
+                              value: responses[fieldName]?.value,
+                              subResponses: newSubResponses
+                            });
+                          }}
+                          error={isSubRequired && (!responses[fieldName]?.subResponses?.[subQuestion.name] || responses[fieldName]?.subResponses?.[subQuestion.name].length === 0)}
+                          renderValue={(selected) => (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {selected.map((value) => (
+                                <Chip key={value} label={value} size="small" />
+                              ))}
+                            </Box>
+                          )}
+                        >
+                          {(subQuestion.options || []).map((option) => (
+                            <MenuItem key={option} value={option}>
+                              {option}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    ) : null}
+                  </Box>
+                );
+              })}
+            </Box>
+          )}
+        </Stack>
+      );
+    }
+
+    if (fieldConfig === 'image') {
       const imageData = responses[fieldName] ? JSON.parse(responses[fieldName]) : null;
       return (
         <Box>
+          <Typography variant="subtitle2" gutterBottom color={isRequired ? 'error' : 'inherit'}>
+            {fieldLabel}
+          </Typography>
           {imageData ? (
             <Box>
               <img 
@@ -310,35 +493,44 @@ function FormView() {
         </Box>
       );
     }
-    
-    return options ? (
-      <Select
-        value={responses[fieldName]}
-        onChange={(e) => handleChange(fieldName, e.target.value)}
-        sx={{ 
-          bgcolor: 'background.paper',
-          '&:hover': { bgcolor: 'background.paper' }
-        }}
-      >
-        {options.map((option) => (
-          <MenuItem key={option} value={option}>
-            {option}
-          </MenuItem>
-        ))}
-      </Select>
-    ) : (
+
+    // Default text input
+    return (
       <TextField
-        value={responses[fieldName]}
+        label={fieldLabel}
+        value={responses[fieldName]?.value || ''}
         onChange={(e) => handleChange(fieldName, e.target.value)}
         fullWidth
-        variant="outlined"
-        placeholder="Your answer"
-        sx={{ 
-          bgcolor: 'background.paper',
-          '&:hover': { bgcolor: 'background.paper' }
-        }}
+        required={isRequired}
+        error={isRequired && (!responses[fieldName]?.value || responses[fieldName]?.value.length === 0)}
       />
     );
+  };
+
+  const validateForm = () => {
+    for (const [fieldName, fieldConfig] of Object.entries(form.fields)) {
+      const isRequired = fieldConfig.required || false;
+      if (isRequired) {
+        const response = responses[fieldName];
+        if (!response || !response.value || response.value.length === 0) {
+          return false;
+        }
+        
+        // Check sub-questions if they exist and are required
+        if (fieldConfig.subQuestions && response?.value) {
+          const subQuestions = fieldConfig.subQuestions[response.value] || [];
+          for (const subQuestion of subQuestions) {
+            if (subQuestion.required) {
+              const subResponse = response.subResponses?.[subQuestion.name];
+              if (!subResponse || (Array.isArray(subResponse) ? subResponse.length === 0 : !subResponse)) {
+                return false;
+              }
+            }
+          }
+        }
+      }
+    }
+    return true;
   };
 
   if (loading) {
@@ -391,7 +583,7 @@ function FormView() {
           <Divider sx={{ my: 3 }} />
 
           <Stack spacing={4}>
-            {Object.entries(form.fields).map(([fieldName, options]) => (
+            {Object.entries(form.fields).map(([fieldName, fieldConfig]) => (
               <Card 
                 key={fieldName} 
                 elevation={1}
@@ -419,7 +611,7 @@ function FormView() {
                     </Grid>
                     <Grid item xs={12}>
                       <FormControl fullWidth variant="outlined">
-                        {renderField(fieldName, options)}
+                        {renderField(fieldName, fieldConfig)}
                       </FormControl>
                     </Grid>
                   </Grid>
@@ -432,6 +624,7 @@ function FormView() {
               variant="contained"
               size="large"
               fullWidth
+              disabled={!validateForm()}
               endIcon={<SendIcon />}
               sx={{ 
                 mt: 4,
@@ -443,6 +636,10 @@ function FormView() {
                   boxShadow: 4,
                   transform: 'translateY(-2px)',
                   transition: 'all 0.2s ease-in-out'
+                },
+                '&:disabled': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.12)',
+                  color: 'rgba(0, 0, 0, 0.26)'
                 }
               }}
             >
