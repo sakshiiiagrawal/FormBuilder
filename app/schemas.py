@@ -6,21 +6,27 @@ class SubQuestion(BaseModel):
     name: str
     type: str
     options: List[str] = []
+    required: bool = False
 
     def dict(self, *args, **kwargs):
         return {
             "name": self.name,
             "type": self.type,
-            "options": self.options
+            "options": self.options,
+            "required": self.required
         }
 
 class FieldOptions(BaseModel):
+    type: str
     options: List[str]
-    subQuestions: Dict[str, List[SubQuestion]]
+    required: bool = False
+    subQuestions: Dict[str, List[SubQuestion]] = {}
 
     def dict(self, *args, **kwargs):
         return {
+            "type": self.type,
             "options": self.options,
+            "required": self.required,
             "subQuestions": {
                 key: [q.dict() for q in questions]
                 for key, questions in self.subQuestions.items()
@@ -29,7 +35,7 @@ class FieldOptions(BaseModel):
 
 class FormBase(BaseModel):
     title: str
-    fields: Dict[str, Optional[Union[List[str], str, FieldOptions]]]
+    fields: Dict[str, Union[FieldOptions, Dict[str, Any]]]
     password: Optional[str] = None
 
     def dict(self, *args, **kwargs):
