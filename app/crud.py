@@ -6,10 +6,11 @@ import models, schemas
 from fastapi import HTTPException
 
 def create_form(db: Session, form: schemas.FormCreate):
+    form_dict = form.dict()
     db_form = models.Form(
-        title=form.title,
-        fields=form.fields,
-        password=form.password
+        title=form_dict["title"],
+        fields=form_dict["fields"],
+        password=form_dict["password"]
     )
     db.add(db_form)
     db.commit()
@@ -40,9 +41,10 @@ def create_response(db: Session, form_uuid: Union[str, uuid.UUID], response: sch
     if not form:
         raise HTTPException(status_code=404, detail="Form not found")
 
+    response_dict = response.dict()
     db_response = models.Response(
         form_uuid=form_uuid,
-        response_data=response.response_data
+        response_data=response_dict["response_data"]
     )
     db.add(db_response)
     db.commit()
