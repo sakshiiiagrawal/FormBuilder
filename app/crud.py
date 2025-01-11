@@ -80,8 +80,34 @@ def get_responses(db: Session, form_uuid: Union[str, uuid.UUID], password: str):
         response.id = str(response.id)
         response.form_uuid = str(response.form_uuid)
     
+    # Process fields to include sub-questions
+    processed_fields = {}
+    for field_name, field_config in form.fields.items():
+        if isinstance(field_config, dict) and 'options' in field_config:
+            processed_fields[field_name] = {
+                'type': 'dropdown' if len(field_config.get('subQuestions', {})) == 0 else 'multiselect',
+                'options': field_config['options'],
+                'subQuestions': field_config.get('subQuestions', {})
+            }
+        else:
+            processed_fields[field_name] = field_config
+
+    # Process responses to include sub-responses
+    processed_responses = []
+    for response in responses:
+        processed_response = {}
+        for field_name, response_data in response.response_data.items():
+            if isinstance(response_data, dict) and 'value' in response_data:
+                processed_response[field_name] = {
+                    'value': response_data['value'],
+                    'subResponses': response_data.get('subResponses', {})
+                }
+            else:
+                processed_response[field_name] = response_data
+        processed_responses.append(processed_response)
+    
     return {
         "title": form.title,
-        "fields": list(form.fields.keys()),
-        "responses": [response.response_data for response in responses]
+        "fields": processed_fields,
+        "responses": processed_responses
     } 
