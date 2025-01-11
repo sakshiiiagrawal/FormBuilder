@@ -33,6 +33,9 @@ function FormView() {
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [imageCapture, setImageCapture] = useState(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [formData, setFormData] = useState({});
+  const [imageData, setImageData] = useState(null);
+  const [locationData, setLocationData] = useState(null);
   const videoRef = React.useRef(null);
   const streamRef = React.useRef(null);
 
