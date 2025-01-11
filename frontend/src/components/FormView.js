@@ -612,12 +612,12 @@ function FormView() {
         
         const currentValue = responses[fieldName]?.value 
           ? Math.max(0, steps.findIndex(step => step.trim() === responses[fieldName].value))
-          : steps.findIndex(step => step.trim() === (fieldConfig.sliderConfig?.defaultValue || steps[0]));
+          : 0;
 
         return (
           <Box sx={{ px: 2, py: 3 }}>
             <Slider
-              value={currentValue === -1 ? 0 : currentValue}
+              value={currentValue}
               onChange={(_, newValue) => handleChange(fieldName, steps[newValue].trim())}
               min={0}
               max={steps.length - 1}
@@ -668,7 +668,7 @@ function FormView() {
               color="text.secondary" 
               sx={{ mt: 1, textAlign: 'center' }}
             >
-              Selected: {responses[fieldName]?.value || fieldConfig.sliderConfig?.defaultValue || steps[0]}
+              Selected: {responses[fieldName]?.value || steps[0]}
             </Typography>
           </Box>
         );

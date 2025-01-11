@@ -204,7 +204,17 @@ function FormCreate() {
       updatedFields[index] = {
         ...updatedFields[index],
         [field]: value,
-        options: value === 'dropdown' || value === 'multiselect' ? [] : undefined
+        options: value === 'dropdown' || value === 'multiselect' ? [] : undefined,
+        sliderConfig: value === 'slider' ? {
+          steps: []
+        } : undefined
+      };
+    } else if (field === 'sliderConfig') {
+      updatedFields[index] = {
+        ...updatedFields[index],
+        sliderConfig: {
+          steps: value ? value.split(',').map(step => step.trim()).filter(Boolean) : []
+        }
       };
     } else {
       updatedFields[index] = {
@@ -469,53 +479,43 @@ function FormCreate() {
                     )}
                     {field.type === 'slider' && (
                       <Grid item xs={12}>
-                        <Stack spacing={2}>
-                          <Typography variant="subtitle2" color="text.secondary">
-                            Slider Configuration
-                          </Typography>
-                          <Box>
-                            <TextField
-                              fullWidth
-                              label="Steps (comma-separated)"
-                              value={field.sliderConfig?.steps?.join(',') ?? '1,2,3,4,5'}
-                              onChange={(e) => handleFieldChange(index, 'sliderConfig', {
-                                ...field.sliderConfig,
-                                steps: e.target.value.split(',').map(s => s.trim()).filter(s => s),
-                                defaultValue: field.sliderConfig?.defaultValue ?? e.target.value.split(',')[0]
-                              })}
-                              placeholder="e.g., Mon,Tue,Wed,Thu,Fri or 1,2,3,4,5"
-                              helperText="Enter values separated by commas"
-                            />
-                          </Box>
-                          <FormControl fullWidth>
-                            <InputLabel>Default Value</InputLabel>
-                            <Select
-                              value={field.sliderConfig?.defaultValue ?? field.sliderConfig?.steps?.[0] ?? ''}
-                              onChange={(e) => handleFieldChange(index, 'sliderConfig', {
-                                ...field.sliderConfig,
-                                defaultValue: e.target.value
-                              })}
-                              label="Default Value"
-                            >
-                              {field.sliderConfig?.steps?.map((step) => (
-                                <MenuItem key={step} value={step}>
-                                  {step}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
-                        </Stack>
+                        <FormControl fullWidth>
+                          <TextField
+                            fullWidth
+                            label="Slider Steps"
+                            value={field.sliderConfig?.rawInput || field.sliderConfig?.steps?.join(', ') || ''}
+                            onChange={(e) => {
+                              const updatedFields = [...fields];
+                              updatedFields[index] = {
+                                ...updatedFields[index],
+                                sliderConfig: {
+                                  rawInput: e.target.value,
+                                  steps: e.target.value ? e.target.value.split(',').map(step => step.trim()).filter(Boolean) : []
+                                }
+                              };
+                              setFields(updatedFields);
+                            }}
+                            placeholder="e.g., Poor, Average, Good, Excellent"
+                            helperText="Enter values separated by commas"
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                height: '56px'
+                              }
+                            }}
+                          />
+                        </FormControl>
                       </Grid>
                     )}
                   </Grid>
                   <Grid item sm={1}>
                     <IconButton
                       onClick={() => handleRemoveField(index)}
+                      disabled={fields.length === 1}
                       sx={{
-                        color: 'grey.500',
+                        color: fields.length === 1 ? 'action.disabled' : 'grey.500',
                         '&:hover': {
-                          color: 'error.main',
-                          bgcolor: 'error.lighter',
+                          color: fields.length === 1 ? 'action.disabled' : 'error.main',
+                          bgcolor: fields.length === 1 ? 'transparent' : 'error.lighter',
                         }
                       }}
                     >
@@ -529,9 +529,27 @@ function FormCreate() {
                           checked={field.required || false}
                           onChange={(e) => handleFieldChange(index, 'required', e.target.checked)}
                           color="primary"
+                          size="small"
+                          sx={{
+                            '& .MuiSwitch-switchBase': {
+                              padding: '4px',
+                            },
+                            '& .MuiSwitch-thumb': {
+                              width: 14,
+                              height: 14,
+                            },
+                            '& .MuiSwitch-track': {
+                              borderRadius: 16,
+                            }
+                          }}
                         />
                       }
-                      label="Required field"
+                      label={
+                        <Typography variant="body2" color="text.secondary">
+                          Required field
+                        </Typography>
+                      }
+                      sx={{ ml: 0 }}
                     />
                   </Grid>
                 </Grid>
