@@ -279,6 +279,12 @@ function FormCreate() {
               type: 'image',
               required: field.required || false
             };
+          } else if (field.type === 'slider') {
+            acc[field.name] = {
+              type: 'slider',
+              required: field.required || false,
+              steps: field.sliderConfig?.steps || []
+            };
           } else {
             // For dropdown and multiselect
             acc[field.name] = {

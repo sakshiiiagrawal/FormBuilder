@@ -604,7 +604,7 @@ function FormView() {
 
     switch (fieldConfig.type) {
       case 'slider':
-        const steps = fieldConfig.sliderConfig?.steps || ['1', '2', '3', '4', '5'];
+        const steps = fieldConfig.steps || ['1', '2', '3', '4', '5'];
         const marks = steps.map((step, index) => ({
           value: index,
           label: step.trim()

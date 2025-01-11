@@ -17,13 +17,11 @@ class SubQuestion(BaseModel):
         }
 
 class SliderConfig(BaseModel):
-    steps: List[str]  # List of predefined values like ["Mon", "Tue", "Wed"] or ["1", "2", "3", "4", "5"]
-    defaultValue: str  # Default selected value
+    steps: List[str]  # List of predefined values like ["Poor", "Average", "Good"] or ["1", "2", "3", "4", "5"]
 
     def dict(self, *args, **kwargs):
         return {
-            "steps": self.steps,
-            "defaultValue": self.defaultValue
+            "steps": self.steps
         }
 
 class FieldOptions(BaseModel):
@@ -31,7 +29,7 @@ class FieldOptions(BaseModel):
     options: Optional[List[str]] = None
     required: bool = False
     subQuestions: Optional[Dict[str, List[SubQuestion]]] = None
-    sliderConfig: Optional[SliderConfig] = None
+    steps: Optional[List[str]] = None  # For slider type fields
 
     def dict(self, *args, **kwargs):
         d = super().dict(*args, **kwargs)

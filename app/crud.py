@@ -41,6 +41,12 @@ def get_form(db: Session, form_uuid: Union[str, uuid.UUID]):
                             'required': field_config.get('required', False),
                             'subQuestions': field_config.get('subQuestions', {})
                         }
+                    elif field_config['type'] == 'slider':
+                        processed_fields[field_name] = {
+                            'type': 'slider',
+                            'required': field_config.get('required', False),
+                            'steps': field_config.get('steps', [])
+                        }
                     else:  # text or image
                         processed_fields[field_name] = {
                             'type': field_config['type'],
@@ -120,12 +126,19 @@ def get_responses(db: Session, form_uuid: Union[str, uuid.UUID], password: str):
     processed_fields = {}
     for field_name, field_config in form.fields.items():
         if isinstance(field_config, dict):
-            processed_fields[field_name] = {
-                'type': field_config.get('type', 'text'),
-                'options': field_config.get('options', []),
-                'required': field_config.get('required', False),
-                'subQuestions': field_config.get('subQuestions', {})
-            }
+            if field_config.get('type') == 'slider':
+                processed_fields[field_name] = {
+                    'type': 'slider',
+                    'required': field_config.get('required', False),
+                    'steps': field_config.get('steps', [])
+                }
+            else:
+                processed_fields[field_name] = {
+                    'type': field_config.get('type', 'text'),
+                    'options': field_config.get('options', []),
+                    'required': field_config.get('required', False),
+                    'subQuestions': field_config.get('subQuestions', {})
+                }
         else:
             processed_fields[field_name] = {
                 'type': 'text',
