@@ -8,7 +8,9 @@ import {
   Stack,
   IconButton,
   MenuItem,
-  Grid
+  Grid,
+  Chip,
+  InputAdornment
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -18,8 +20,8 @@ import { getApiUrl, API_ENDPOINTS } from '../config';
 
 const FIELD_TYPES = [
   { value: 'text', label: 'Text Input' },
-  { value: 'dropdown', label: 'Dropdown' },
-  { value: 'multiselect', label: 'Multi Select' },
+  { value: 'dropdown', label: 'Single Select Dropdown' },
+  { value: 'multiselect', label: 'Multi Select Dropdown' },
   { value: 'image', label: 'Image Input' }
 ];
 
@@ -38,6 +40,7 @@ function FormCreate() {
   const [expiry, setExpiry] = useState(getDefaultExpiry());
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [formLink, setFormLink] = useState('');
+  const [currentOption, setCurrentOption] = useState('');
 
   const handleAddField = () => {
     setFields([...fields, { name: '', type: 'text', options: [], isImage: false }]);
@@ -55,6 +58,31 @@ function FormCreate() {
       options: field.type === 'image' ? [] : newFields[index].options 
     };
     setFields(newFields);
+  };
+
+  const handleAddOption = (index) => {
+    if (currentOption.trim()) {
+      const newFields = [...fields];
+      newFields[index] = {
+        ...newFields[index],
+        options: [...newFields[index].options, currentOption.trim()]
+      };
+      setFields(newFields);
+      setCurrentOption('');
+    }
+  };
+
+  const handleRemoveOption = (fieldIndex, optionIndex) => {
+    const newFields = [...fields];
+    newFields[fieldIndex].options = newFields[fieldIndex].options.filter((_, i) => i !== optionIndex);
+    setFields(newFields);
+  };
+
+  const handleKeyPress = (e, index) => {
+    if (e.key === 'Enter' && currentOption.trim()) {
+      e.preventDefault();
+      handleAddOption(index);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -109,7 +137,7 @@ function FormCreate() {
 
             {fields.map((field, index) => (
               <Box key={index} sx={{ p: 2, border: '1px solid #eee', borderRadius: 1 }}>
-                <Grid container spacing={2} alignItems="center">
+                <Grid container spacing={2} alignItems="flex-start">
                   <Grid item xs={12} sm={4}>
                     <TextField
                       label="Field Name"
@@ -137,17 +165,46 @@ function FormCreate() {
                   </Grid>
                   <Grid item xs={10} sm={3}>
                     {(field.type === 'dropdown' || field.type === 'multiselect') ? (
-                      <TextField
-                        label="Options (comma-separated)"
-                        value={Array.isArray(field.options) ? field.options.join(',') : ''}
-                        onChange={(e) => handleFieldChange(index, { 
-                          options: e.target.value.split(',').map(opt => opt.trim()).filter(opt => opt)
-                        })}
-                        required
-                        fullWidth
-                        placeholder="Enter options separated by commas"
-                        helperText="Example: Option1, Option2, Option3"
-                      />
+                      <Box>
+                        <TextField
+                          label="Add Option"
+                          value={currentOption}
+                          onChange={(e) => setCurrentOption(e.target.value)}
+                          onKeyPress={(e) => handleKeyPress(e, index)}
+                          fullWidth
+                          placeholder="Type and press Enter"
+                          InputProps={{
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <IconButton 
+                                  onClick={() => handleAddOption(index)}
+                                  size="small"
+                                  disabled={!currentOption.trim()}
+                                >
+                                  <AddIcon />
+                                </IconButton>
+                              </InputAdornment>
+                            ),
+                          }}
+                        />
+                        <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                          {field.options.map((option, optionIndex) => (
+                            <Chip
+                              key={optionIndex}
+                              label={option}
+                              onDelete={() => handleRemoveOption(index, optionIndex)}
+                              color="primary"
+                              variant="outlined"
+                              size="small"
+                            />
+                          ))}
+                        </Box>
+                        {field.options.length === 0 && (
+                          <Typography variant="caption" color="error">
+                            At least one option is required
+                          </Typography>
+                        )}
+                      </Box>
                     ) : field.type === 'image' ? (
                       <Typography variant="body2" color="textSecondary">
                         Image upload will be enabled in the form
@@ -199,7 +256,7 @@ function FormCreate() {
               type="submit"
               variant="contained"
               size="large"
-              disabled={!title || !password || fields.some(f => !f.name)}
+              disabled={!title || !password || fields.some(f => !f.name || ((f.type === 'dropdown' || f.type === 'multiselect') && f.options.length === 0))}
             >
               Create Form
             </Button>
