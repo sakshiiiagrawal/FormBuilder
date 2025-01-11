@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
+import { getApiUrl, API_ENDPOINTS } from '../config';
 import {
   Box,
   Paper,
@@ -37,7 +38,7 @@ function ViewResponses() {
   const fetchResponses = useCallback(async (uuid, pwd) => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:8000/view-responses/${uuid}?password=${pwd}`);
+      const response = await axios.get(getApiUrl(API_ENDPOINTS.VIEW_RESPONSES(uuid)) + `?password=${pwd}`);
       setResponses(response.data.responses);
       setFields(response.data.fields);
       setError(null);

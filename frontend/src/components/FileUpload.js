@@ -21,6 +21,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import SuccessDialog from './SuccessDialog';
+import { getApiUrl, API_ENDPOINTS } from '../config';
 
 const SUPPORTED_FORMATS = [
   { extension: 'csv', description: 'CSV (Comma Separated Values)' },
@@ -62,7 +63,7 @@ function FileUpload() {
     formData.append('file', file);
 
     try {
-      const response = await axios.post('http://localhost:8000/upload-file', formData, {
+      const response = await axios.post(getApiUrl(API_ENDPOINTS.UPLOAD_FILE), formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

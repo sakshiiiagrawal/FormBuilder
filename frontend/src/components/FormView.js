@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { getApiUrl, API_ENDPOINTS } from '../config';
 import {
   Box,
   Paper,
@@ -38,7 +39,7 @@ function FormView() {
   useEffect(() => {
     const fetchForm = async () => {
       try {
-        const response = await axios.get(`http://localhost:8000/form/${uuid}`);
+        const response = await axios.get(getApiUrl(API_ENDPOINTS.GET_FORM(uuid)));
         setForm(response.data);
         // Initialize responses object with first option for dropdowns
         const initialResponses = {};
@@ -65,7 +66,7 @@ function FormView() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`http://localhost:8000/submit-form/${uuid}`, {
+      await axios.post(getApiUrl(API_ENDPOINTS.SUBMIT_FORM(uuid)), {
         response_data: responses
       });
       setSuccessDialogOpen(true);

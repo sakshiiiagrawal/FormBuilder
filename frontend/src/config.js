@@ -1,6 +1,6 @@
 const config = {
     // Use environment variable if available, otherwise fallback to default
-    BACKEND_URL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000',
+    BACKEND_URL: 'https://formbuilder-wxw0.onrender.com',
 };
 
 // Helper functions to construct API URLs

@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Button, Alert, Link } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getApiUrl, API_ENDPOINTS } from '../config';
 
 function FormUpload() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -31,7 +32,7 @@ function FormUpload() {
     formData.append('file', selectedFile);
 
     try {
-      const response = await axios.post('http://localhost:8000/upload-file', formData, {
+      const response = await axios.post(getApiUrl(API_ENDPOINTS.UPLOAD_FILE), formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
