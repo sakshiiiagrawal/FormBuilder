@@ -28,6 +28,32 @@ def get_form(db: Session, form_uuid: Union[str, uuid.UUID]):
     if db_form:
         # Convert UUID to string before returning
         db_form.uuid = str(db_form.uuid)
+        
+        # Process fields to ensure proper structure
+        processed_fields = {}
+        for field_name, field_config in db_form.fields.items():
+            if isinstance(field_config, dict):
+                if 'type' in field_config:
+                    if field_config['type'] in ['dropdown', 'multiselect']:
+                        processed_fields[field_name] = {
+                            'type': field_config['type'],
+                            'options': field_config.get('options', []),
+                            'required': field_config.get('required', False),
+                            'subQuestions': field_config.get('subQuestions', {})
+                        }
+                    else:  # text or image
+                        processed_fields[field_name] = {
+                            'type': field_config['type'],
+                            'required': field_config.get('required', False)
+                        }
+            else:
+                # Legacy format or simple field
+                processed_fields[field_name] = {
+                    'type': 'text',
+                    'required': False
+                }
+        
+        db_form.fields = processed_fields
     return db_form
 
 def create_response(db: Session, form_uuid: Union[str, uuid.UUID], response: schemas.ResponseCreate):
