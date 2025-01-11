@@ -131,9 +131,21 @@ async def upload_file(
                                 status_code=400, 
                                 detail=f"No valid options provided for {field_type} field '{field_name}' in row {index + 2}"
                             )
-                        fields[field_name] = options
-                    else:
-                        fields[field_name] = None
+                        fields[field_name] = {
+                            'type': field_type,
+                            'options': options,
+                            'required': False
+                        }
+                    elif field_type == 'image':
+                        fields[field_name] = {
+                            'type': 'image',
+                            'required': False
+                        }
+                    else:  # text field
+                        fields[field_name] = {
+                            'type': 'text',
+                            'required': False
+                        }
                         
                 except Exception as e:
                     raise HTTPException(
