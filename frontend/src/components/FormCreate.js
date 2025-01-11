@@ -33,7 +33,8 @@ const FIELD_TYPES = [
   { value: 'text', label: 'Text Input' },
   { value: 'dropdown', label: 'Single Select Dropdown' },
   { value: 'multiselect', label: 'Multi Select Dropdown' },
-  { value: 'image', label: 'Image Input' }
+  { value: 'image', label: 'Image Input' },
+  { value: 'slider', label: 'Slider' }
 ];
 
 const getDefaultExpiry = () => {
@@ -181,13 +182,20 @@ function FormCreate() {
   });
 
   const handleAddField = () => {
-    const newField = {
-      name: '',
-      type: 'text',
-      options: [],
-      required: false
-    };
-    setFields([...fields, newField]);
+    setFields([
+      ...fields,
+      {
+        name: '',
+        type: 'text',
+        options: [],
+        required: false,
+        subQuestions: {},
+        sliderConfig: {
+          steps: ['1', '2', '3', '4', '5'],
+          defaultValue: '3'
+        }
+      }
+    ]);
   };
 
   const handleFieldChange = (index, field, value) => {
@@ -458,6 +466,46 @@ function FormCreate() {
                       <Typography variant="body2" color="textSecondary">
                         Image upload will be enabled in the form
                       </Typography>
+                    )}
+                    {field.type === 'slider' && (
+                      <Grid item xs={12}>
+                        <Stack spacing={2}>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Slider Configuration
+                          </Typography>
+                          <Box>
+                            <TextField
+                              fullWidth
+                              label="Steps (comma-separated)"
+                              value={field.sliderConfig?.steps?.join(',') ?? '1,2,3,4,5'}
+                              onChange={(e) => handleFieldChange(index, 'sliderConfig', {
+                                ...field.sliderConfig,
+                                steps: e.target.value.split(',').map(s => s.trim()).filter(s => s),
+                                defaultValue: field.sliderConfig?.defaultValue ?? e.target.value.split(',')[0]
+                              })}
+                              placeholder="e.g., Mon,Tue,Wed,Thu,Fri or 1,2,3,4,5"
+                              helperText="Enter values separated by commas"
+                            />
+                          </Box>
+                          <FormControl fullWidth>
+                            <InputLabel>Default Value</InputLabel>
+                            <Select
+                              value={field.sliderConfig?.defaultValue ?? field.sliderConfig?.steps?.[0] ?? ''}
+                              onChange={(e) => handleFieldChange(index, 'sliderConfig', {
+                                ...field.sliderConfig,
+                                defaultValue: e.target.value
+                              })}
+                              label="Default Value"
+                            >
+                              {field.sliderConfig?.steps?.map((step) => (
+                                <MenuItem key={step} value={step}>
+                                  {step}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Stack>
+                      </Grid>
                     )}
                   </Grid>
                   <Grid item sm={1}>

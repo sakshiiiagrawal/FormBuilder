@@ -16,22 +16,27 @@ class SubQuestion(BaseModel):
             "required": self.required
         }
 
-class FieldOptions(BaseModel):
-    type: str
-    options: List[str]
-    required: bool = False
-    subQuestions: Dict[str, List[SubQuestion]] = {}
+class SliderConfig(BaseModel):
+    steps: List[str]  # List of predefined values like ["Mon", "Tue", "Wed"] or ["1", "2", "3", "4", "5"]
+    defaultValue: str  # Default selected value
 
     def dict(self, *args, **kwargs):
         return {
-            "type": self.type,
-            "options": self.options,
-            "required": self.required,
-            "subQuestions": {
-                key: [q.dict() for q in questions]
-                for key, questions in self.subQuestions.items()
-            }
+            "steps": self.steps,
+            "defaultValue": self.defaultValue
         }
+
+class FieldOptions(BaseModel):
+    type: str
+    options: Optional[List[str]] = None
+    required: bool = False
+    subQuestions: Optional[Dict[str, List[SubQuestion]]] = None
+    sliderConfig: Optional[SliderConfig] = None
+
+    def dict(self, *args, **kwargs):
+        d = super().dict(*args, **kwargs)
+        # Remove None values
+        return {k: v for k, v in d.items() if v is not None}
 
 class FormBase(BaseModel):
     title: str

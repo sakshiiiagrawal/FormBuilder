@@ -21,6 +21,7 @@ import {
   InputLabel,
   OutlinedInput,
   Chip,
+  Slider,
 } from '@mui/material';
 import { Send as SendIcon, CameraAlt, PhotoLibrary, LocationOn } from '@mui/icons-material';
 import axios from 'axios';
@@ -494,17 +495,77 @@ function FormView() {
       );
     }
 
-    // Default text input
-    return (
-      <TextField
-        label={fieldLabel}
-        value={responses[fieldName]?.value || ''}
-        onChange={(e) => handleChange(fieldName, e.target.value)}
-        fullWidth
-        required={isRequired}
-        error={isRequired && (!responses[fieldName]?.value || responses[fieldName]?.value.length === 0)}
-      />
-    );
+    switch (fieldConfig.type) {
+      case 'slider':
+        const steps = fieldConfig.sliderConfig?.steps || ['1', '2', '3', '4', '5'];
+        const marks = steps.map((step, index) => ({
+          value: index,
+          label: step
+        }));
+        
+        const currentValue = responses[fieldName]?.value 
+          ? steps.indexOf(responses[fieldName].value)
+          : steps.indexOf(fieldConfig.sliderConfig?.defaultValue || steps[0]);
+
+        return (
+          <Box sx={{ px: 2, py: 3 }}>
+            <Slider
+              value={currentValue}
+              onChange={(_, newValue) => handleChange(fieldName, steps[newValue])}
+              min={0}
+              max={steps.length - 1}
+              step={1}
+              marks={marks}
+              valueLabelDisplay="auto"
+              valueLabelFormat={(value) => steps[value]}
+              sx={{
+                '& .MuiSlider-markLabel': {
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                },
+                '& .MuiSlider-thumb': {
+                  height: 24,
+                  width: 24,
+                  backgroundColor: '#fff',
+                  border: '2px solid currentColor',
+                  '&:focus, &:hover, &.Mui-active, &.Mui-focusVisible': {
+                    boxShadow: 'inherit',
+                  },
+                },
+                '& .MuiSlider-valueLabel': {
+                  lineHeight: 1.2,
+                  fontSize: 12,
+                  background: 'unset',
+                  padding: 0,
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50% 50% 50% 0',
+                  backgroundColor: 'primary.main',
+                  transformOrigin: 'bottom left',
+                  transform: 'translate(50%, -100%) rotate(-45deg) scale(0)',
+                  '&:before': { display: 'none' },
+                  '&.MuiSlider-valueLabelOpen': {
+                    transform: 'translate(50%, -100%) rotate(-45deg) scale(1)',
+                  },
+                  '& > *': {
+                    transform: 'rotate(45deg)',
+                  },
+                },
+              }}
+            />
+            <Typography 
+              variant="body2" 
+              color="text.secondary" 
+              sx={{ mt: 1, textAlign: 'center' }}
+            >
+              Selected: {responses[fieldName]?.value || fieldConfig.sliderConfig?.defaultValue || steps[0]}
+            </Typography>
+          </Box>
+        );
+      
+      default:
+        return null;
+    }
   };
 
   const validateForm = () => {
