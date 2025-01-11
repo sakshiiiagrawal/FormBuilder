@@ -34,6 +34,7 @@ import {
   ViewList as TableViewIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
+  LocationOn,
 } from '@mui/icons-material';
 
 function ViewResponses() {
@@ -240,6 +241,62 @@ function ViewResponses() {
     });
   };
 
+  const toTitleCase = (str) => {
+    return str.split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const renderFieldValue = (fieldConfig, response) => {
+    if (!response) return '-';
+
+    if (fieldConfig.type === 'image' && response.value) {
+      try {
+        const imageData = JSON.parse(response.value);
+        return (
+          <Box>
+            <img
+              src={imageData.base64.startsWith('data:') ? imageData.base64 : getApiUrl(imageData.base64)}
+              alt="Captured"
+              style={{
+                maxWidth: '100%',
+                maxHeight: '200px',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                display: 'block',
+                margin: '0 auto'
+              }}
+            />
+            <Typography variant="caption" display="block" align="center" sx={{ mt: 1 }}>
+              Taken at: {new Date(imageData.timestamp).toLocaleString()}
+            </Typography>
+            <Box sx={{ mt: 1, textAlign: 'center' }}>
+              <Button
+                variant="text"
+                size="small"
+                href={`https://www.google.com/maps?q=${imageData.location.latitude},${imageData.location.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                startIcon={<LocationOn />}
+                sx={{ textTransform: 'none' }}
+              >
+                Open Location in Maps
+              </Button>
+            </Box>
+          </Box>
+        );
+      } catch (error) {
+        return 'Invalid image data';
+      }
+    }
+
+    if (fieldConfig.type === 'multiselect' && Array.isArray(response.value)) {
+      return response.value.join(', ');
+    }
+
+    return response.value || '-';
+  };
+
   const renderCardView = () => {
     const filteredResponses = filterResponses(responses);
     
@@ -348,7 +405,7 @@ function ViewResponses() {
                         {fieldName}
                       </Typography>
                       <Typography variant="body1" sx={{ color: 'text.primary' }}>
-                        {response[fieldName]?.value || 'No response'}
+                        {renderFieldValue(fieldConfig, response[fieldName])}
                       </Typography>
                       {fieldConfig.subQuestions && response[fieldName]?.value && (
                         <Box sx={{ 
@@ -408,7 +465,7 @@ function ViewResponses() {
               {Object.keys(fields).map((fieldName) => (
                 <TableCell key={fieldName}>
                   <Box>
-                    <Typography>{response[fieldName]?.value || 'No response'}</Typography>
+                    <Typography>{renderFieldValue(fields[fieldName], response[fieldName])}</Typography>
                     {fields[fieldName].subQuestions && response[fieldName]?.value && (
                       <Box sx={{ ml: 2, borderLeft: '2px solid #e0e0e0', pl: 2, mt: 1 }}>
                         {fields[fieldName].subQuestions[response[fieldName].value]?.map((subQuestion) => (
@@ -465,7 +522,7 @@ function ViewResponses() {
             color: 'text.primary'
           }}
         >
-          {title}
+          {toTitleCase(title)}
         </Typography>
         <Button
           variant="contained"
