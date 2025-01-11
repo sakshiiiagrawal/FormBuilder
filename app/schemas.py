@@ -32,6 +32,7 @@ class Response(ResponseCreate):
         from_attributes = True
 
 class ViewResponsesResponse(BaseModel):
+    title: str
     fields: List[str]
     responses: List[Dict[str, Any]]
 

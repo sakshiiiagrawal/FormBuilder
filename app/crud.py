@@ -81,6 +81,7 @@ def get_responses(db: Session, form_uuid: Union[str, uuid.UUID], password: str):
         response.form_uuid = str(response.form_uuid)
     
     return {
+        "title": form.title,
         "fields": list(form.fields.keys()),
         "responses": [response.response_data for response in responses]
     } 
