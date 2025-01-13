@@ -126,12 +126,14 @@ function SuccessDialog({
 
         <DialogActions sx={{ justifyContent: 'center', pt: 2 }}>
           <Stack direction="row" spacing={2}>
-            <Button 
-              onClick={onClose}
-              variant="outlined"
-            >
-              Close
-            </Button>
+            {!onSubmitAnother && (
+              <Button 
+                onClick={onClose}
+                variant="outlined"
+              >
+                Close
+              </Button>
+            )}
             {onSubmitAnother && (
               <Button 
                 onClick={onSubmitAnother}

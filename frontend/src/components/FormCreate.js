@@ -308,6 +308,19 @@ function FormCreate() {
     }
   };
 
+  const resetFields = () => {
+    setTitle('');
+    setFields([{ 
+      name: '', 
+      type: 'text', 
+      options: [], 
+      subQuestions: {}
+    }]);
+    setPassword('');
+    setExpiry(getDefaultExpiry());
+    setFormLink('');
+  };
+
   return (
     <>
       <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 800, mx: 'auto' }}>
@@ -631,7 +644,7 @@ function FormCreate() {
         open={successDialogOpen}
         onClose={() => {
           setSuccessDialogOpen(false);
-          navigate('/');
+          resetFields();
         }}
         title="Form Created Successfully!"
         message="Your form has been created. Share the link below with others to collect responses."

@@ -167,7 +167,6 @@ function FormView() {
 
   const handleCloseDialog = () => {
     setSuccessDialogOpen(false);
-    navigate('/');
   };
 
   const handleSubmitAnother = () => {
