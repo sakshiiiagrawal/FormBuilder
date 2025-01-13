@@ -603,6 +603,17 @@ function FormView() {
     }
 
     switch (fieldConfig.type) {
+      case 'text':
+        return (
+          <TextField
+            fullWidth
+            required={isRequired}
+            value={responses[fieldName]?.value || ''}
+            onChange={(e) => handleChange(fieldName, e.target.value)}
+            error={isRequired && !responses[fieldName]?.value}
+          />
+        );
+        
       case 'slider':
         const steps = fieldConfig.steps || ['1', '2', '3', '4', '5'];
         const marks = steps.map((step, index) => ({
